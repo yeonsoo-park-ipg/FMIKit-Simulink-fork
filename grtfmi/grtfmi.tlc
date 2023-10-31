@@ -30,10 +30,9 @@
   rtwoptions(i).prompt        = 'FMI';
   rtwoptions(i).type          = 'Category';
   rtwoptions(i).enable        = 'on';
-  rtwoptions(i).default       = 5;   % number of items under this category
-                                     % excluding this one.
-  rtwoptions(i).popupstrings  = '';  % At the first item, user has to 
-  rtwoptions(i).tlcvariable   = '';  % initialize all supported fields
+  rtwoptions(i).default       = 5;
+  rtwoptions(i).popupstrings  = '';
+  rtwoptions(i).tlcvariable   = '';
   rtwoptions(i).tooltip       = '';
   rtwoptions(i).callback      = '';
   rtwoptions(i).makevariable  = '';
@@ -59,16 +58,14 @@
   rtwoptions(i).default        = getenv('username');
   rtwoptions(i).tlcvariable    = 'ModelAuthor';
   rtwoptions(i).makevariable   = '';
-  rtwoptions(i).tooltip        = ...
-    'Model author to be written to the model description';
+  rtwoptions(i).tooltip        = 'Model author to be written to the model description';
 
   i = i + 1;
   rtwoptions(i).prompt        = 'Template directory';
   rtwoptions(i).type          = 'Edit';
   rtwoptions(i).default       = '';
   rtwoptions(i).tlcvariable   = 'FMUTemplateDir';
-  rtwoptions(i).tooltip       = ...
-    'Template directory with files and folders to be added to the FMU';
+  rtwoptions(i).tooltip       = 'Template directory with files and folders to be added to the FMU';
 
   i = i + 1;
   rtwoptions(i).prompt         = 'Add image of Simulink model';
@@ -76,8 +73,7 @@
   rtwoptions(i).default        = 'on';
   rtwoptions(i).tlcvariable    = 'AddModelImage';
   rtwoptions(i).makevariable   = '';
-  rtwoptions(i).tooltip        = ...
-    'Add an image of the Simulink model to the FMU (model.png)';
+  rtwoptions(i).tooltip        = 'Add an image of the Simulink model to the FMU (model.png)';
 
   i = i + 1;
   rtwoptions(i).prompt        = 'Include sources in FMU';
@@ -97,10 +93,9 @@
   rtwoptions(i).prompt        = 'CMake';
   rtwoptions(i).type          = 'Category';
   rtwoptions(i).enable        = 'on';
-  rtwoptions(i).default       = 4;   % number of items under this category
-                                     % excluding this one.
-  rtwoptions(i).popupstrings  = '';  % At the first item, user has to 
-  rtwoptions(i).tlcvariable   = '';  % initialize all supported fields
+  rtwoptions(i).default       = 4;
+  rtwoptions(i).popupstrings  = ''; 
+  rtwoptions(i).tlcvariable   = '';
   rtwoptions(i).tooltip       = '';
   rtwoptions(i).callback      = '';
   rtwoptions(i).makevariable  = '';
@@ -113,29 +108,37 @@
   rtwoptions(i).tooltip       = 'CMake command or path the executable (leave empty for default command)';
 
   i = i + 1;
-  rtwoptions(i).prompt        = 'CMake generator';
-  rtwoptions(i).type          = 'Popup';
-  rtwoptions(i).default       = grtfmi_cmake_default_generator();
-  rtwoptions(i).popupstrings  = grtfmi_cmake_generators();
-  rtwoptions(i).tlcvariable   = 'CMakeGenerator';
-  rtwoptions(i).tooltip       = 'CMake generator to build the shared library';
-
+  rtwoptions(i).prompt           = 'Windows';
+  rtwoptions(i).type           = 'Checkbox';
   if ispc
-    i = i + 1;
-    rtwoptions(i).prompt        = 'CMake generator platform';
-    rtwoptions(i).type          = 'Popup';
-    rtwoptions(i).default       = 'x64';
-    rtwoptions(i).popupstrings  = 'Win32|x64';
-    rtwoptions(i).tlcvariable   = 'CMakeGeneratorPlatform';
-    rtwoptions(i).tooltip       = 'CMake generator platform to build the shared library';
+    rtwoptions(i).default       = 'on';
+  else
+    rtwoptions(i).default       = 'off';
   end
+  rtwoptions(i).tlcvariable   = 'CMakeBuildWindows';
+  rtwoptions(i).tooltip       = 'Build for Windows target with the settings of CMake:Windows tab when opted in.';
+  
+  i = i + 1;
+  rtwoptions(i).prompt           = 'Linux';
+  rtwoptions(i).type           = 'Checkbox';
+  if isunix
+    rtwoptions(i).default       = 'on';
+  else
+    rtwoptions(i).default       = 'off';
+  end
+  rtwoptions(i).tlcvariable   = 'CMakeBuildLinux';
+  rtwoptions(i).tooltip       = 'Build for Linux target with the settings of CMake:Linux tab when opted in.';
 
   i = i + 1;
-  rtwoptions(i).prompt        = 'Toolset';
-  rtwoptions(i).type          = 'Edit';
-  rtwoptions(i).default       = '';
-  rtwoptions(i).tlcvariable   = 'CMakeToolset';
-  rtwoptions(i).tooltip       = 'CMake toolset specification (optional)';
+  rtwoptions(i).prompt           = 'Darwin';
+  rtwoptions(i).type           = 'Checkbox';
+  if ismac
+    rtwoptions(i).default       = 'on';
+  else
+    rtwoptions(i).default       = 'off';
+  end
+  rtwoptions(i).tlcvariable   = 'CMakeBuildDarwin';
+  rtwoptions(i).tooltip       = 'Build for Darwin target with the settings of CMake:Darwin tab when opted in.';
 
   i = i + 1;
   rtwoptions(i).prompt        = 'Build configuration';
@@ -165,6 +168,152 @@
   rtwoptions(i).type          = 'Edit';
   rtwoptions(i).default       = '';
   rtwoptions(i).tlcvariable   = 'CMakeCompilerOptimizationFlags';
+  rtwoptions(i).tooltip       = 'Custom compiler optimization flags';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake:Windows';
+  rtwoptions(i).type          = 'Category';
+  rtwoptions(i).enable        = 'on';
+  rtwoptions(i).default       = 4;
+  rtwoptions(i).tlcvariable   = '';
+  rtwoptions(i).tooltip       = '';
+  rtwoptions(i).callback      = '';
+  rtwoptions(i).makevariable  = '';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake generator';
+  rtwoptions(i).type          = 'Popup';
+  rtwoptions(i).default       = 'Visual Studio 17 2022';
+  rtwoptions(i).popupstrings  = ['Visual Studio 17 2022|' ...
+                                'Visual Studio 16 2019|' ...
+                                'Visual Studio 15 2017|' ...
+                                'Visual Studio 14 2015|' ...
+                                'Visual Studio 12 2013|' ...
+                                'Visual Studio 11 2012|' ...
+                                'Visual Studio 10 2010|' ...
+                                'MinGW Makefiles'];
+  rtwoptions(i).tlcvariable   = 'CMakeGeneratorWindows';
+  rtwoptions(i).tooltip       = 'CMake generator to build the shared library';
+  
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake generator platform';
+  rtwoptions(i).type          = 'Popup';
+  rtwoptions(i).default       = 'x64';
+  rtwoptions(i).popupstrings  = 'x86|x64';
+  rtwoptions(i).tlcvariable   = 'CMakeGeneratorPlatformWindows';
+  rtwoptions(i).tooltip       = 'CMake generator platform to build the shared library';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake compiler';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeCompilerWindows';
+  rtwoptions(i).tooltip       = 'CMake compiler path. Not applied for Visual Studio builds. Automatically searches in PATH if left empty.';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake make';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeMakeWindows';
+  rtwoptions(i).tooltip       = 'CMake make path. Not applied for Visual Studio builds. Automatically searches in PATH if left empty.';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'Toolset';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeToolsetWindows';
+  rtwoptions(i).tooltip       = 'CMake toolset specification (optional)';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'Custom compiler optimization flags';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeCompilerOptimizationFlagsWindows';
+  rtwoptions(i).tooltip       = 'Custom compiler optimization flags';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake:Linux';
+  rtwoptions(i).type          = 'Category';
+  rtwoptions(i).enable        = 'on';
+  rtwoptions(i).default       = 4;
+  rtwoptions(i).tlcvariable   = '';
+  rtwoptions(i).tooltip       = '';
+  rtwoptions(i).callback      = '';
+  rtwoptions(i).makevariable  = '';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake generator';
+  rtwoptions(i).type          = 'Popup';
+  rtwoptions(i).default       = 'Unix Makefiles';
+  rtwoptions(i).popupstrings  = ['Unix Makefiles'];
+  rtwoptions(i).tlcvariable   = 'CMakeGeneratorLinux';
+  rtwoptions(i).tooltip       = 'CMake generator to build the shared library';
+  
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake compiler';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeCompilerLinux';
+  rtwoptions(i).tooltip       = 'CMake compiler path. Automatically searches in PATH if left empty.';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake make';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeMakeLinux';
+  rtwoptions(i).tooltip       = 'CMake make path. Automatically searches in PATH if left empty.';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'Custom compiler optimization flags';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeCompilerOptimizationFlagsLinux';
+  rtwoptions(i).tooltip       = 'Custom compiler optimization flags';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake:Darwin';
+  rtwoptions(i).type          = 'Category';
+  rtwoptions(i).enable        = 'on';
+  rtwoptions(i).default       = 4;
+  rtwoptions(i).tlcvariable   = '';
+  rtwoptions(i).tooltip       = '';
+  rtwoptions(i).callback      = '';
+  rtwoptions(i).makevariable  = '';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake generator';
+  rtwoptions(i).type          = 'Popup';
+  rtwoptions(i).default       = 'Xcode';
+  rtwoptions(i).popupstrings  = ['Xcode'];
+  rtwoptions(i).tlcvariable   = 'CMakeGeneratorDarwin';
+  rtwoptions(i).tooltip       = 'CMake generator to build the shared library';
+  
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake compiler';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeCompilerDarwin';
+  rtwoptions(i).tooltip       = 'CMake compiler path. Automatically searches in PATH if left empty.';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'CMake make';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeMakeDarwin';
+  rtwoptions(i).tooltip       = 'CMake make path. Automatically searches in PATH if left empty.';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'Toolset';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeToolsetDarwin';
+  rtwoptions(i).tooltip       = 'CMake toolset specification (optional)';
+
+  i = i + 1;
+  rtwoptions(i).prompt        = 'Custom compiler optimization flags';
+  rtwoptions(i).type          = 'Edit';
+  rtwoptions(i).default       = '';
+  rtwoptions(i).tlcvariable   = 'CMakeCompilerOptimizationFlagsDarwin';
   rtwoptions(i).tooltip       = 'Custom compiler optimization flags';
 
   %----------------------------------------%

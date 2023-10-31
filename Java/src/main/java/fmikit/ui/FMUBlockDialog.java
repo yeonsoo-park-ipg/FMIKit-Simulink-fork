@@ -9,8 +9,6 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
 import fmikit.*;
-import fmikit.BuildDescription.BuildConfiguration;
-import fmikit.BuildDescription.SourceFileSet;
 import fmikit.ui.tree.*;
 import org.jdesktop.swingx.JXTreeTable;
 
@@ -86,7 +84,6 @@ public class FMUBlockDialog extends JDialog {
     public static final int CO_SIMULATION = 1;
     public static HashMap<Double, FMUBlockDialog> dialogs = new HashMap<Double, FMUBlockDialog>();
     public ModelDescription modelDescription;
-    public BuildDescription buildDescription;
     public DefaultMutableTreeNode outportRoot; // TODO: access via model
     public DefaultTreeModel outportTreeModel; // TODO: access via tree
     public HashMap<String, String> startValues = new HashMap<String, String>();
@@ -334,7 +331,6 @@ public class FMUBlockDialog extends JDialog {
         }
 
         final FMUBlockDialog dialog = new FMUBlockDialog();
-        dialog.mdlDirectory = "E:\\Development\\FMIKit-Simulink\\Java\\temp";
         dialog.pack();
         dialog.setVisible(true);
         dialog.btnApply.addActionListener(new ActionListener() {
@@ -342,7 +338,7 @@ public class FMUBlockDialog extends JDialog {
                 // Util.setTreeExpandedState(dialog.treeTable.ex, true);
                 dialog.treeTable.expandAll();
                 System.out.println(dialog.getSFunctionParameters());
-//                System.out.println(dialog.getBuildConfiguration());
+                System.out.println(dialog.getSourceFiles());
             }
         });
         //System.exit(0);
@@ -1369,17 +1365,6 @@ public class FMUBlockDialog extends JDialog {
             return;
         }
 
-        String buildDescriptionFile = Util.joinPath(getUnzipDirectory(), "sources", "buildDescription.xml");
-
-        if (new File(buildDescriptionFile).exists()) {
-            try {
-                buildDescription = BuildDescriptionReader.readBuildDescription(buildDescriptionFile);
-            } catch (Exception e) {
-                warning("Failed to read build description. " + e.getMessage());
-                return;
-            }
-        }
-
         for (String message : modelDescriptionReader.messages) {
             warning(message);
         }
@@ -1539,16 +1524,7 @@ public class FMUBlockDialog extends JDialog {
     }
 
     public boolean canUseSourceCode() {
-
-        if (buildDescription != null) {
-            return true;
-        }
-
-        if (!getImplementation().sourceFiles.isEmpty()) {
-            return true;
-        }
-
-        return false;
+        return !getImplementation().sourceFiles.isEmpty();
     }
 
     private Implementation getImplementation() {
@@ -1594,24 +1570,32 @@ public class FMUBlockDialog extends JDialog {
         w.close();
     }
 
-    public SourceFileSet getSourceFileSet() {
+    public List<String> getSourceFiles() {
+
+        ArrayList<String> sourceFiles = new ArrayList<String>();
 
         Implementation implementation = getImplementation();
 
-        if (buildDescription != null) {
+        for (String sourceFile : implementation.sourceFiles) {
 
-            for (BuildConfiguration buildConfiguration : buildDescription.buildConfigurations) {
+            if ("all.c".equals(sourceFile)) {
 
-                if (implementation.modelIdentifier.equals(buildConfiguration.modelIdentifier)) {
-                    return buildConfiguration.sourceFileSets.get(0);
+                final File oldFile = new File(Util.joinPath(getUnzipDirectory(), "sources", "all.c"));
+                final String newFilename = "all_" + implementation.modelIdentifier + ".c";
+                final File newFile = new File(Util.joinPath(getUnzipDirectory(), "sources", newFilename));
+
+                // rename all.c to avoid name clashes
+                if (oldFile.exists() && !newFile.exists()) {
+                    oldFile.renameTo(newFile);
                 }
+
+                sourceFile = newFilename;
             }
+
+            sourceFiles.add(sourceFile);
         }
 
-        SourceFileSet sourceFileSet = new SourceFileSet();
-        sourceFileSet.sourceFiles = implementation.sourceFiles;
-
-        return sourceFileSet;
+        return sourceFiles;
     }
 
     public DefaultMutableTreeNode restoreOutportTree() {

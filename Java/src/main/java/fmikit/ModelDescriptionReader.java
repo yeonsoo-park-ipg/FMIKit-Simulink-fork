@@ -384,7 +384,6 @@ public class ModelDescriptionReader {
 			scalarVariable.startValue = element.getAttribute("start");
 			scalarVariable.description = element.getAttribute("description");
 			scalarVariable.causality = element.getAttribute("causality");
-			scalarVariable.variability = element.getAttribute("variability");
 			scalarVariable.unit = element.getAttribute("unit");
 			scalarVariable.derivative = element.getAttribute("derivative");
 
@@ -439,7 +438,8 @@ public class ModelDescriptionReader {
 			} else if ("InitialUnknown".equals(tagName)) {
 				modelDescription.modelStructure.initialUnknowns.put(variable, dependencies);
 			} else if ("EventIndicator".equals(tagName)) {
-				modelDescription.numberOfEventIndicators += calculateInitialSize(variable);;
+				ScalarVariable eventIndicator = variables.get(variable.derivative);
+				modelDescription.numberOfEventIndicators += calculateInitialSize(eventIndicator);;
 			}
 
 		}

@@ -2,69 +2,46 @@ cmake_minimum_required (VERSION 3.22)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(MODEL_NAME "" CACHE STRING "Model name")
-set(MATLAB_ROOT "C:/Program Files/MATLAB/R2016b" CACHE STRING "MATLAB install directory")
-set(RTW_DIR "" CACHE STRING "RTW generated model directory")
-set(ARCH "win64" CACHE STRING "System architecture")
-set(CUSTOM_INCLUDE "" CACHE STRING "Additional include directories")
-set(CUSTOM_SOURCE "" CACHE STRING "Additional source files")
-set(CUSTOM_LIBRARY "" CACHE STRING "Additional static libraries")
-set(SOURCE_CODE_FMU ON CACHE BOOL "Copy sources to FMU archive")
-set(SIMSCAPE OFF CACHE BOOL "Model contains Simscape blocks")
 set(FMU_BUILD_DIR FMUArchive)
-set(FMI_VERSION 2 CACHE STRING "FMI Version")
-set_property(CACHE FMI_VERSION PROPERTY STRINGS 2 3)
-set(COMPILER_OPTIMIZATION_LEVEL "Disabled" CACHE STRING "Compiler optimization level")
-set_property(CACHE COMPILER_OPTIMIZATION_LEVEL PROPERTY STRINGS "Disabled" "Minimize size" "Maximize speed" "Full optimization" "Custom")
-set(COMPILER_OPTIMIZATION_FLAGS "/Ox" CACHE STRING "Custom compiler optimization flags")
-
-# link statically against the Visual C runtime
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 get_filename_component(CURRENT_DIR ${RTW_DIR} DIRECTORY)
+project (${MODEL_NAME} LANGUAGES C)
 
-project (${MODEL_NAME})
-
-if ("${FMI_VERSION}" STREQUAL "3")
-
-  if (WIN32)
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  if ("${FMI_VERSION}" STREQUAL "3")
     set(FMI_PLATFORM windows)
-  elseif (APPLE)
-    set(FMI_PLATFORM darwin)
   else ()
-    set(FMI_PLATFORM linux)
-  endif ()
-
-  if ("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
-    set (FMI_PLATFORM x86_64-${FMI_PLATFORM})
-  else ()
-    set (FMI_PLATFORM i686-${FMI_PLATFORM})
-  endif ()
-
-else ()
-
-  if (WIN32)
     set(FMI_PLATFORM win)
-  elseif (APPLE)
-    set(FMI_PLATFORM darwin)
-  else ()
-    set(FMI_PLATFORM linux)
-  endif ()
-
-  if ("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
-    set (FMI_PLATFORM ${FMI_PLATFORM}64)
-  else ()
-    set (FMI_PLATFORM ${FMI_PLATFORM}32)
-  endif ()
-
+  endif()
+  set(SUFFIX ".dll")
+  set(OUTPUT_FORMAT SHARED)
+elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+  set(FMI_PLATFORM darwin)
+  set(SUFFIX ".dylib")
+else ()
+  set(FMI_PLATFORM linux)
+  set(SUFFIX ".so")
+  set(OUTPUT_FORMAT MODULE)
 endif ()
 
+
+if ("${TARGET_PLATFORM}" STREQUAL "x64")
+  if ("${FMI_VERSION}" STREQUAL "3")
+    set (FMI_PLATFORM x86_64-${FMI_PLATFORM})
+  else ()
+    set (FMI_PLATFORM ${FMI_PLATFORM}64)
+  endif()
+else ()
+  if ("${FMI_VERSION}" STREQUAL "3")
+    set (FMI_PLATFORM i686-${FMI_PLATFORM})
+  else ()
+    set (FMI_PLATFORM ${FMI_PLATFORM}32)
+  endif()
+endif ()
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING INTERNAL FORCE)
 if (MSVC)
-  # set configuration types
-  set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING INTERNAL FORCE)
-
-  message("CMAKE_C_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE}")
-
+  # link statically against the Visual C runtime
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   # set optimization flags
   if (COMPILER_OPTIMIZATION_LEVEL STREQUAL "Disabled")
     STRING(REPLACE "/O2" "/Od" CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}")
@@ -79,9 +56,21 @@ if (MSVC)
     STRING(REPLACE "/O2" "${COMPILER_OPTIMIZATION_FLAGS}" CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}")
     STRING(REPLACE "/O2" "${COMPILER_OPTIMIZATION_FLAGS}" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
   endif ()
-
-  message("CMAKE_C_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE}")
-
+elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+  # set optimization flags
+  if (COMPILER_OPTIMIZATION_LEVEL STREQUAL "Disabled")
+    STRING(REPLACE "-O3" "-O0" CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}")
+    STRING(REPLACE "-O3" "-O0" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+  elseif (COMPILER_OPTIMIZATION_LEVEL STREQUAL "Minimize size")
+    STRING(REPLACE "-O3" "-Os" CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}")
+    STRING(REPLACE "-O3" "-Os" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+  elseif (COMPILER_OPTIMIZATION_LEVEL STREQUAL "Full optimization")
+    STRING(REPLACE "-O3" "-O3" CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}")
+    STRING(REPLACE "-O3" "-O3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+  elseif (COMPILER_OPTIMIZATION_LEVEL STREQUAL "Custom")
+    STRING(REPLACE "-O3" "${COMPILER_OPTIMIZATION_FLAGS}" CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}")
+    STRING(REPLACE "-O3" "${COMPILER_OPTIMIZATION_FLAGS}" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+  endif()
 endif ()
 
 foreach (INCLUDE_DIR ${CUSTOM_INCLUDE})
@@ -227,7 +216,6 @@ if (EXISTS ${RTW_DIR}/buildDescription.xml)
     ${FMU_BUILD_DIR}/sources/buildDescription.xml
   )
 endif ()
-
 # shared library
 add_custom_command(TARGET ${MODEL_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy
   $<TARGET_FILE:${MODEL_NAME}>
