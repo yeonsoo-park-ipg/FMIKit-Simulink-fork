@@ -22,6 +22,15 @@ end
 % add the FMIKit folder to the MATLAB path
 addpath(folder);
 
+% add the src folder to the MATLAB path
+if isempty(which('FMU.cpp'))
+    src_folder = fullfile(folder, 'src');
+    if exist(src_folder, 'dir')
+        addpath(src_folder);
+        msg = true;
+    end
+end
+
 % add the GRTFMI target to the MATLAB path
 if isempty(which('grtfmi.tlc'))
     grtfmi_folder = fullfile(folder, 'grtfmi');
@@ -54,13 +63,6 @@ end
 if isempty(which('fmikit.ui.FMUBlockDialog'))
     javaaddpath(fullfile(folder, 'fmikit.jar'))
     msg = true;
-end
-
-% check fmikit.jar version
-jarVersion = char(fmikit.ui.FMUBlockDialog.FMI_KIT_VERSION);
-if ~strcmp(jarVersion, FMIKit.version)
-    error(['Wrong fmikit.jar version. Expected ' FMIKit.version ...
-      ' but was ' jarVersion '.'])
 end
 
 % delete re-saved block library
@@ -97,7 +99,8 @@ if isempty(which('fmikit_demo_BouncingBall'))
 end
 
 if msg
-    disp(['Initializing FMI Kit ' FMIKit.version])
+    disp(['Initializing FMI Kit ' [num2str(FMIKit.majorVersion) '.' ...
+        num2str(FMIKit.minorVersion) '.' num2str(FMIKit.patchVersion)]])
         
     % check MATLAB version
     rel = version('-release');

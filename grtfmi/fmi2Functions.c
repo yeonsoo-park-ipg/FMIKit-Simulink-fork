@@ -5,8 +5,6 @@
 #include <float.h>  /* for DBL_EPSILON, FLT_MAX */
 #include <math.h>   /* for fabs() */
 #include <string.h> /* for strcpy(), strncmp() */
-#include <stdarg.h> /* for va_list */
-#include <stdio.h>  /* for vsnprintf(), vprintf() */
 
 #include "fmiwrapper.inc"
 
@@ -17,6 +15,11 @@ const char *RT_MEMORY_ALLOCATION_ERROR = "memory allocation error";
 /* Path to the resources directory of the extracted FMU */
 const char *FMU_RESOURCES_DIR = NULL;
 
+
+int rtPrintfNoOp(const char *fmt, ...) {
+	return 0;  /* do nothing */
+}
+
 typedef struct {
 	RT_MDL_TYPE *S;
 	const char *instanceName;
@@ -25,72 +28,30 @@ typedef struct {
 	ModelVariable modelVariables[N_MODEL_VARIABLES];
 } ModelInstance;
 
-static ModelInstance *s_instance = NULL;
+static void setResourcePath(const char *uri) {
 
-#define ASSERT_INSTANCE \
-    if (!c || c != s_instance) { \
-        return fmi2Error; \
+	const char *scheme1 = "file:///";
+	const char *scheme2 = "file:/";
+	char *path;
+
+	if (!uri || FMU_RESOURCES_DIR) return;
+
+	if (strncmp(uri, scheme1, strlen(scheme1)) == 0) {
+        path = strdup(&uri[strlen(scheme1) - 1]);
+	} else if (strncmp(uri, scheme2, strlen(scheme2)) == 0) {
+        path = strdup(&uri[strlen(scheme2) - 1]);
+    } else {
+        return;
     }
 
-#define NOT_IMPLEMENTED \
-    logError("Function is not implemented."); \
-	return fmi2Error;
-
-#define CHECK_ERROR_STATUS \
-	const char *errorStatus = rtmGetErrorStatus(s_instance->S); \
-	if (errorStatus) { \
-		logError(errorStatus); \
-		return fmi2Error; \
+#ifdef _WIN32
+	// strip any leading slashes
+	while (path[0] == '/') {
+		strcpy(path, &path[1]);
 	}
-
-#define UNUSED(x) (void)(x)
-
-int rtPrintfNoOp(const char *fmt, ...) {
-
-	va_list args;
-	va_start(args, fmt);
-
-	if (s_instance && s_instance->logger) {
-		char message[1024] = "";
-		vsnprintf(message, 1024, fmt, args);
-        s_instance->logger(s_instance->componentEnvironment, s_instance->instanceName, fmi2OK, "info", message);
-	} else {
-		vprintf(fmt, args);
-	}
-
-	va_end(args);
-
-	return 0;
-}
-
-static void logError(const char *message) {
-    if (s_instance && s_instance->logger) {
-        s_instance->logger(s_instance->componentEnvironment, s_instance->instanceName, fmi2Error, "error", message);
-    }
-}
-
-static void doFixedStep(RT_MDL_TYPE *S) {
-
-#if NUM_TASKS > 1 // multitasking
-
-	// step the model for the base sample time
-	MODEL_STEP(0);
-
-	// step the model for any other sample times (subrates)
-	for (int i = FIRST_TASK_ID + 1; i < NUM_SAMPLE_TIMES; i++) {
-		if (rtmStepTask(S, i)) {
-			MODEL_STEP(i);
-		}
-		if (++rtmTaskCounter(S, i) == rtmCounterLimit(S, i)) {
-			rtmTaskCounter(S, i) = 0;
-		}
-	}
-
-#else // singletasking
-
-	MODEL_STEP();
-
 #endif
+
+	FMU_RESOURCES_DIR = path;
 }
 
 /***************************************************
@@ -109,18 +70,7 @@ const char* fmi2GetVersion() {
 fmi2Status  fmi2SetDebugLogging(fmi2Component c,
 	fmi2Boolean loggingOn,
 	size_t nCategories,
-	const fmi2String categories[]) {
-
-    UNUSED(c);
-    UNUSED(loggingOn);
-    UNUSED(categories);
-    
-    if (nCategories == 0) {
-        return fmi2OK;
-    }
-
-    return fmi2Error;
-}
+	const fmi2String categories[]) { return fmi2Error; }
 
 /* Creation and destruction of FMU instances and setting debug status */
 fmi2Component fmi2Instantiate(fmi2String instanceName,
@@ -131,76 +81,42 @@ fmi2Component fmi2Instantiate(fmi2String instanceName,
 	fmi2Boolean visible,
 	fmi2Boolean loggingOn) {
 
-    UNUSED(fmuType);
-    UNUSED(visible);
-    UNUSED(loggingOn);
-
+	ModelInstance *instance;
 	size_t len;
-
-    /* check interface type */
-    if (fmuType != fmi2CoSimulation) {
-        return NULL;
-    }
 
 	/* check GUID */
 	if (strcmp(fmuGUID, MODEL_GUID) != 0) {
 		return NULL;
 	}
 
-    /* check if the FMU has already been instantiated */
-    if (s_instance) {
-        logError("The FMU can only be instantiated once per process.");
-        return NULL;
-    }
-
 	/* set the path to the resources directory */
-    if (fmuResourceLocation && !FMU_RESOURCES_DIR) {
-        const char *scheme1 = "file:///";
-        const char *scheme2 = "file:/";
-        char *path = NULL;
+	setResourcePath(fmuResourceLocation);
 
-        if (strncmp(fmuResourceLocation, scheme1, strlen(scheme1)) == 0) {
-            path = strdup(&fmuResourceLocation[strlen(scheme1) - 1]);
-        } else if (strncmp(fmuResourceLocation, scheme2, strlen(scheme2)) == 0) {
-            path = strdup(&fmuResourceLocation[strlen(scheme2) - 1]);
-        }
-
-        if (path) {
-#ifdef _WIN32
-            // strip any leading slashes
-            while (path[0] == '/') {
-                strcpy(path, &path[1]);
-            }
-#endif
-            FMU_RESOURCES_DIR = path;
-        }
-    }
-
-    s_instance = malloc(sizeof(ModelInstance));
+	instance = malloc(sizeof(ModelInstance));
 
 	len = strlen(instanceName);
-    s_instance->instanceName = malloc((len + 1) * sizeof(char));
-	strncpy((char *)s_instance->instanceName, instanceName, len + 1);
-    s_instance->logger = functions->logger;
-    s_instance->componentEnvironment = functions->componentEnvironment;
+	instance->instanceName = malloc((len + 1) * sizeof(char));
+	strncpy((char *)instance->instanceName, instanceName, len + 1);
+	instance->logger = functions->logger;
+	instance->componentEnvironment = functions->componentEnvironment;
 
-    s_instance->S = RT_MDL_INSTANCE;
+#ifdef REUSABLE_FUNCTION
+	instance->S = MODEL();
+#else
+	instance->S = RT_MDL_INSTANCE;
+#endif
 
-	initializeModelVariables(s_instance->S, s_instance->modelVariables);
+	initializeModelVariables(instance->S, instance->modelVariables);
 
-	return s_instance;
+	return instance;
 }
 
 void fmi2FreeInstance(fmi2Component c) {
-
-    if (!c || c != s_instance) return;
-		
-	free((void *)s_instance->instanceName);
-	free(s_instance);
+	ModelInstance *instance = (ModelInstance *)c;
+	free((void *)instance->instanceName);
+	free(instance);
     free((void *)FMU_RESOURCES_DIR);
-
 	FMU_RESOURCES_DIR = NULL;
-    s_instance = NULL;
 }
 
 /* Enter and exit initialization mode, terminate and reset */
@@ -211,18 +127,7 @@ fmi2Status fmi2SetupExperiment(fmi2Component c,
 	fmi2Boolean stopTimeDefined,
 	fmi2Real stopTime) {
 
-    UNUSED(toleranceDefined);
-    UNUSED(tolerance);
-
-	ASSERT_INSTANCE
-
-    if (startTime != 0) {
-        logError("startTime != 0.0 is not supported.");
-        return fmi2Error;
-    }
-
 	if (stopTimeDefined && stopTime <= startTime) {
-        logError("stopTime must be greater than startTime.");
 		return fmi2Error;
 	}
 
@@ -231,46 +136,56 @@ fmi2Status fmi2SetupExperiment(fmi2Component c,
 
 fmi2Status fmi2EnterInitializationMode(fmi2Component c) {
 
-	ASSERT_INSTANCE
+	ModelInstance *instance = (ModelInstance *)c;
 
+#ifdef REUSABLE_FUNCTION
+	MODEL_INITIALIZE(instance->S);
+#else
 	MODEL_INITIALIZE();
-
-	CHECK_ERROR_STATUS
+#endif
 
 	return fmi2OK;
 }
 
 fmi2Status fmi2ExitInitializationMode(fmi2Component c) {
-
-	ASSERT_INSTANCE
-
-	doFixedStep(s_instance->S);
-
-	CHECK_ERROR_STATUS
-
 	return fmi2OK;
 }
 
 fmi2Status fmi2Terminate(fmi2Component c) {
 
-	ASSERT_INSTANCE
+	ModelInstance *instance = (ModelInstance *)c;
 
+#ifdef REUSABLE_FUNCTION
+	MODEL_TERMINATE(instance->S);
+#else
 	MODEL_TERMINATE();
+#endif
 
-	s_instance->S = NULL;
+	instance->S = NULL;
 
 	return fmi2OK;
 }
 
 fmi2Status fmi2Reset(fmi2Component c) {
 
-	ASSERT_INSTANCE
-
-    if (s_instance->S) {
-        MODEL_TERMINATE();
+    ModelInstance *instance = (ModelInstance *)c;
+    
+#ifdef REUSABLE_FUNCTION
+    if (instance->S) {
+        MODEL_TERMINATE(instance->S);
     }
 
-	initializeModelVariables(s_instance->S, s_instance->modelVariables);
+	instance->S = MODEL();
+	MODEL_INITIALIZE(instance->S);
+#else
+    if (instance->S) {
+        MODEL_TERMINATE();
+    }
+    
+	MODEL_INITIALIZE();
+#endif
+
+	initializeModelVariables(instance->S, instance->modelVariables);
 
 	return fmi2OK;
 }
@@ -278,8 +193,7 @@ fmi2Status fmi2Reset(fmi2Component c) {
 /* Getting and setting variable values */
 fmi2Status fmi2GetReal(fmi2Component c, const fmi2ValueReference vr[], size_t nvr, fmi2Real value[]) {
 
-	ASSERT_INSTANCE
-		
+	ModelInstance *instance = (ModelInstance *)c;
 	size_t i, index;
 	ModelVariable v;
 
@@ -291,7 +205,7 @@ fmi2Status fmi2GetReal(fmi2Component c, const fmi2ValueReference vr[], size_t nv
 			return fmi2Error;
 		}
 
-		v = s_instance->modelVariables[index];
+		v = instance->modelVariables[index];
 
 		switch (v.dtypeID) {
 		case SS_DOUBLE:
@@ -310,8 +224,7 @@ fmi2Status fmi2GetReal(fmi2Component c, const fmi2ValueReference vr[], size_t nv
 
 fmi2Status fmi2GetInteger(fmi2Component c, const fmi2ValueReference vr[], size_t nvr, fmi2Integer value[]) {
 
-	ASSERT_INSTANCE
-		
+	ModelInstance *instance = (ModelInstance *)c;
 	size_t i, index;
 	ModelVariable v;
 
@@ -323,7 +236,7 @@ fmi2Status fmi2GetInteger(fmi2Component c, const fmi2ValueReference vr[], size_t
 			return fmi2Error;
 		}
 
-		v = s_instance->modelVariables[index];
+		v = instance->modelVariables[index];
 
 		switch (v.dtypeID) {
 		case SS_INT8:
@@ -354,8 +267,7 @@ fmi2Status fmi2GetInteger(fmi2Component c, const fmi2ValueReference vr[], size_t
 
 fmi2Status fmi2GetBoolean(fmi2Component c, const fmi2ValueReference vr[], size_t nvr, fmi2Boolean value[]) {
 
-	ASSERT_INSTANCE
-
+	ModelInstance *instance = (ModelInstance *)c;
 	size_t i, index;
 	ModelVariable v;
 
@@ -367,7 +279,7 @@ fmi2Status fmi2GetBoolean(fmi2Component c, const fmi2ValueReference vr[], size_t
 			return fmi2Error;
 		}
 
-		v = s_instance->modelVariables[index];
+		v = instance->modelVariables[index];
 
 		switch (v.dtypeID) {
 		case SS_BOOLEAN:
@@ -381,20 +293,11 @@ fmi2Status fmi2GetBoolean(fmi2Component c, const fmi2ValueReference vr[], size_t
 	return fmi2OK;
 }
 
-fmi2Status fmi2GetString(fmi2Component c, const fmi2ValueReference vr[], size_t nvr, fmi2String  value[]) { 
-
-    UNUSED(c);
-    UNUSED(vr);
-    UNUSED(nvr);
-    UNUSED(value);
-
-    NOT_IMPLEMENTED
-}
+fmi2Status fmi2GetString(fmi2Component c, const fmi2ValueReference vr[], size_t nvr, fmi2String  value[]) { return fmi2Error; }
 
 fmi2Status fmi2SetReal(fmi2Component c, const fmi2ValueReference vr[], size_t nvr, const fmi2Real value[]) { 
 
-	ASSERT_INSTANCE
-		
+	ModelInstance *instance = (ModelInstance *)c;
 	size_t i, index;
 	ModelVariable v;
 
@@ -406,7 +309,7 @@ fmi2Status fmi2SetReal(fmi2Component c, const fmi2ValueReference vr[], size_t nv
 			return fmi2Error;
 		}
 
-		v = s_instance->modelVariables[index];
+		v = instance->modelVariables[index];
 
 		switch (v.dtypeID) {
 		case SS_DOUBLE:
@@ -429,8 +332,7 @@ fmi2Status fmi2SetReal(fmi2Component c, const fmi2ValueReference vr[], size_t nv
 
 fmi2Status fmi2SetInteger(fmi2Component c, const fmi2ValueReference vr[], size_t nvr, const fmi2Integer value[]) {
 
-	ASSERT_INSTANCE
-		
+	ModelInstance *instance = (ModelInstance *)c;
 	size_t i, index;
 	ModelVariable v;
 
@@ -442,20 +344,20 @@ fmi2Status fmi2SetInteger(fmi2Component c, const fmi2ValueReference vr[], size_t
 			return fmi2Error;
 		}
 
-		v = s_instance->modelVariables[index];
+		v = instance->modelVariables[index];
 
 		switch (v.dtypeID) {
 		case SS_INT8:
-			*((INT8_T *)v.address) = (INT8_T)value[i];
+			*((INT8_T *)v.address) = value[i];
 			break;
 		case SS_UINT8:
-			*((UINT8_T *)v.address) = (UINT8_T)value[i];
+			*((UINT8_T *)v.address) = value[i];
 			break;
 		case SS_INT16:
-			*((INT16_T *)v.address) = (INT16_T)value[i];
+			*((INT16_T *)v.address) = value[i];
 			break;
 		case SS_UINT16:
-			*((UINT16_T *)v.address) = (UINT16_T)value[i];
+			*((UINT16_T *)v.address) = value[i];
 			break;
 		case SS_INT32:
 			*((INT32_T *)v.address) = value[i];
@@ -473,8 +375,7 @@ fmi2Status fmi2SetInteger(fmi2Component c, const fmi2ValueReference vr[], size_t
 
 fmi2Status fmi2SetBoolean(fmi2Component c, const fmi2ValueReference vr[], size_t nvr, const fmi2Boolean value[]) {
 
-	ASSERT_INSTANCE
-		
+	ModelInstance *instance = (ModelInstance *)c;
 	size_t i, index;
 	ModelVariable v;
 
@@ -486,11 +387,11 @@ fmi2Status fmi2SetBoolean(fmi2Component c, const fmi2ValueReference vr[], size_t
 			return fmi2Error;
 		}
 
-		v = s_instance->modelVariables[index];
+		v = instance->modelVariables[index];
 
 		switch (v.dtypeID) {
 		case SS_BOOLEAN:
-			*((BOOLEAN_T *)v.address) = (BOOLEAN_T)value[i];
+			*((BOOLEAN_T *)v.address) = value[i];
 			break;
 		default:
 			return fmi2Error;
@@ -500,183 +401,45 @@ fmi2Status fmi2SetBoolean(fmi2Component c, const fmi2ValueReference vr[], size_t
 	return fmi2OK;
 }
 
-fmi2Status fmi2SetString(fmi2Component c, const fmi2ValueReference vr[], size_t nvr, const fmi2String  value[]) {
-
-    UNUSED(c);
-    UNUSED(vr);
-    UNUSED(nvr);
-    UNUSED(value);
-
-    NOT_IMPLEMENTED
-}
+fmi2Status fmi2SetString(fmi2Component c, const fmi2ValueReference vr[], size_t nvr, const fmi2String  value[]) { return fmi2Error; }
 
 /* Getting and setting the internal FMU state */
-fmi2Status fmi2GetFMUstate(fmi2Component c, fmi2FMUstate* FMUstate) {
-
-    UNUSED(c);
-    UNUSED(FMUstate);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2SetFMUstate(fmi2Component c, fmi2FMUstate  FMUstate) {
-
-    UNUSED(c);
-    UNUSED(FMUstate);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2FreeFMUstate(fmi2Component c, fmi2FMUstate* FMUstate) {
-
-    UNUSED(c);
-    UNUSED(FMUstate);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2SerializedFMUstateSize(fmi2Component c, fmi2FMUstate  FMUstate, size_t* size) {
-
-    UNUSED(c);
-    UNUSED(FMUstate);
-    UNUSED(size);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2SerializeFMUstate(fmi2Component c, fmi2FMUstate  FMUstate, fmi2Byte serializedState[], size_t size) {
-
-    UNUSED(c);
-    UNUSED(FMUstate);
-    UNUSED(serializedState);
-    UNUSED(size);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2DeSerializeFMUstate(fmi2Component c, const fmi2Byte serializedState[], size_t size, fmi2FMUstate* FMUstate) {
-
-    UNUSED(c);
-    UNUSED(serializedState);
-    UNUSED(size);
-    UNUSED(FMUstate);
-
-    NOT_IMPLEMENTED
-}
+fmi2Status fmi2GetFMUstate(fmi2Component c, fmi2FMUstate* FMUstate) { return fmi2Error; }
+fmi2Status fmi2SetFMUstate(fmi2Component c, fmi2FMUstate  FMUstate) { return fmi2Error; }
+fmi2Status fmi2FreeFMUstate(fmi2Component c, fmi2FMUstate* FMUstate) { return fmi2Error; }
+fmi2Status fmi2SerializedFMUstateSize(fmi2Component c, fmi2FMUstate  FMUstate, size_t* size) { return fmi2Error; }
+fmi2Status fmi2SerializeFMUstate(fmi2Component c, fmi2FMUstate  FMUstate, fmi2Byte serializedState[], size_t size) { return fmi2Error; }
+fmi2Status fmi2DeSerializeFMUstate(fmi2Component c, const fmi2Byte serializedState[], size_t size, fmi2FMUstate* FMUstate) { return fmi2Error; }
 
 /* Getting partial derivatives */
 fmi2Status fmi2GetDirectionalDerivative(fmi2Component c,
 	const fmi2ValueReference vUnknown_ref[], size_t nUnknown,
 	const fmi2ValueReference vKnown_ref[], size_t nKnown,
 	const fmi2Real dvKnown[],
-	fmi2Real dvUnknown[]) {
-
-    UNUSED(c);
-    UNUSED(vUnknown_ref);
-    UNUSED(nUnknown);
-    UNUSED(vKnown_ref);
-    UNUSED(nKnown);
-    UNUSED(dvKnown);
-    UNUSED(dvUnknown);
-
-    NOT_IMPLEMENTED
-}
+	fmi2Real dvUnknown[]) { return fmi2Error; }
 
 /***************************************************
 Types for Functions for FMI2 for Model Exchange
 ****************************************************/
 
 /* Enter and exit the different modes */
-fmi2Status fmi2EnterEventMode(fmi2Component c) { 
-
-    UNUSED(c);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2NewDiscreteStates(fmi2Component c, fmi2EventInfo* fmi2eventInfo) {
-
-    UNUSED(c);
-    UNUSED(fmi2eventInfo);
-
-    NOT_IMPLEMENTED
-}
-
-
-fmi2Status fmi2EnterContinuousTimeMode(fmi2Component c) {
-
-    UNUSED(c);
-
-    NOT_IMPLEMENTED
-}
-
+fmi2Status fmi2EnterEventMode(fmi2Component c) { return fmi2Error; }
+fmi2Status fmi2NewDiscreteStates(fmi2Component c, fmi2EventInfo* fmi2eventInfo) { return fmi2Error; }
+fmi2Status fmi2EnterContinuousTimeMode(fmi2Component c) { return fmi2Error; }
 fmi2Status fmi2CompletedIntegratorStep(fmi2Component c,
 	fmi2Boolean   noSetFMUStatePriorToCurrentPoint,
 	fmi2Boolean*  enterEventMode,
-	fmi2Boolean*  terminateSimulation) {
-
-    UNUSED(c);
-    UNUSED(noSetFMUStatePriorToCurrentPoint);
-    UNUSED(enterEventMode);
-    UNUSED(terminateSimulation);
-
-    NOT_IMPLEMENTED
-}
+	fmi2Boolean*  terminateSimulation) { return fmi2Error; }
 
 /* Providing independent variables and re-initialization of caching */
-fmi2Status fmi2SetTime(fmi2Component c, fmi2Real time) {
-
-    UNUSED(c);
-    UNUSED(time);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2SetContinuousStates(fmi2Component c, const fmi2Real x[], size_t nx) {
-
-    UNUSED(c);
-    UNUSED(x);
-    UNUSED(nx);
-
-    NOT_IMPLEMENTED
-}
+fmi2Status fmi2SetTime(fmi2Component c, fmi2Real time) { return fmi2Error; }
+fmi2Status fmi2SetContinuousStates(fmi2Component c, const fmi2Real x[], size_t nx) { return fmi2Error; }
 
 /* Evaluation of the model equations */
-fmi2Status fmi2GetDerivatives(fmi2Component c, fmi2Real derivatives[], size_t nx) {
-
-    UNUSED(c);
-    UNUSED(derivatives);
-    UNUSED(nx);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2GetEventIndicators(fmi2Component c, fmi2Real eventIndicators[], size_t ni) {
-
-    UNUSED(c);
-    UNUSED(eventIndicators);
-    UNUSED(ni);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2GetContinuousStates(fmi2Component c, fmi2Real x[], size_t nx) {
-
-    UNUSED(c);
-    UNUSED(x);
-    UNUSED(nx);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2GetNominalsOfContinuousStates(fmi2Component c, fmi2Real x_nominal[], size_t nx) {
-
-    UNUSED(c);
-    UNUSED(x_nominal);
-    UNUSED(nx);
-
-    NOT_IMPLEMENTED
-}
+fmi2Status fmi2GetDerivatives(fmi2Component c, fmi2Real derivatives[], size_t nx) { return fmi2Error; }
+fmi2Status fmi2GetEventIndicators(fmi2Component c, fmi2Real eventIndicators[], size_t ni) { return fmi2Error; }
+fmi2Status fmi2GetContinuousStates(fmi2Component c, fmi2Real x[], size_t nx) { return fmi2Error; }
+fmi2Status fmi2GetNominalsOfContinuousStates(fmi2Component c, fmi2Real x_nominal[], size_t nx) { return fmi2Error; }
 
 
 /***************************************************
@@ -687,104 +450,86 @@ Types for Functions for FMI2 for Co-Simulation
 fmi2Status fmi2SetRealInputDerivatives(fmi2Component c,
 	const fmi2ValueReference vr[], size_t nvr,
 	const fmi2Integer order[],
-	const fmi2Real value[]) {
-
-    UNUSED(c);
-    UNUSED(vr);
-    UNUSED(nvr);
-    UNUSED(order);
-    UNUSED(value);
-
-    NOT_IMPLEMENTED
-}
+	const fmi2Real value[]) { return fmi2Error; }
 
 fmi2Status fmi2GetRealOutputDerivatives(fmi2Component c,
 	const fmi2ValueReference vr[], size_t nvr,
 	const fmi2Integer order[],
-	fmi2Real value[]) {
-
-    UNUSED(c);
-    UNUSED(vr);
-    UNUSED(nvr);
-    UNUSED(order);
-    UNUSED(value);
-
-    NOT_IMPLEMENTED
-}
+	fmi2Real value[]) { return fmi2Error; }
 
 fmi2Status fmi2DoStep(fmi2Component c,
 	fmi2Real      currentCommunicationPoint,
 	fmi2Real      communicationStepSize,
 	fmi2Boolean   noSetFMUStatePriorToCurrentPoint) {
 
-    UNUSED(noSetFMUStatePriorToCurrentPoint);
+	ModelInstance *instance = (ModelInstance *)c;
+	RT_MDL_TYPE *S = instance->S;
+	const char *errorStatus = NULL;
 
-	ASSERT_INSTANCE
-		
 #ifdef rtmGetT
 	time_T tNext = currentCommunicationPoint + communicationStepSize;
-	double epsilon = (1.0 + fabs(rtmGetT(s_instance->S))) * 2 * DBL_EPSILON;
+	double epsilon = (1.0 + fabs(rtmGetT(S))) * 2 * DBL_EPSILON;
 	
-    while (rtmGetT(s_instance->S) < tNext + epsilon)
+    while (rtmGetT(S) + STEP_SIZE < tNext + epsilon)
 #endif
 	{
-		doFixedStep(s_instance->S);
 
-		CHECK_ERROR_STATUS
+#if NUM_TASKS > 1 // multitasking
+
+#ifdef REUSABLE_FUNCTION
+		// step the model for the base sample time
+		MODEL_STEP(S, 0);
+
+		// step the model for any other sample times (subrates)
+		for (int i = FIRST_TASK_ID + 1; i < NUM_SAMPLE_TIMES; i++) {
+			if (rtmStepTask(S, i)) {
+				MODEL_STEP(S, i);
+			}
+			if (++rtmTaskCounter(S, i) == rtmCounterLimit(S, i)) {
+				rtmTaskCounter(S, i) = 0;
+			}
+		}
+#else
+		// step the model for the base sample time
+		MODEL_STEP(0);
+
+		// step the model for any other sample times (subrates)
+		for (int i = FIRST_TASK_ID + 1; i < NUM_SAMPLE_TIMES; i++) {
+			if (rtmStepTask(S, i)) {
+				MODEL_STEP(i);
+			}
+			if (++rtmTaskCounter(S, i) == rtmCounterLimit(S, i)) {
+				rtmTaskCounter(S, i) = 0;
+			}
+		}
+#endif
+
+#else // multitasking
+
+#ifdef REUSABLE_FUNCTION
+		MODEL_STEP(S);
+#else
+        MODEL_STEP();
+#endif
+
+#endif // multitasking
+
+		errorStatus = rtmGetErrorStatus(S);
+		if (errorStatus) {
+			instance->logger(instance->componentEnvironment, instance->instanceName, fmi2Error, "error", errorStatus);
+			return fmi2Error;
+		}
+
 	}
 
 	return fmi2OK;
 }
 
-fmi2Status fmi2CancelStep(fmi2Component c) {
-
-    UNUSED(c);
-
-    NOT_IMPLEMENTED
-}
+fmi2Status fmi2CancelStep(fmi2Component c) { return fmi2Error; }
 
 /* Inquire slave status */
-fmi2Status fmi2GetStatus(fmi2Component c, const fmi2StatusKind s, fmi2Status*  value) {
-
-    UNUSED(c);
-    UNUSED(s);
-    UNUSED(value);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2GetRealStatus(fmi2Component c, const fmi2StatusKind s, fmi2Real*    value) {
-
-    UNUSED(c);
-    UNUSED(s);
-    UNUSED(value);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2GetIntegerStatus(fmi2Component c, const fmi2StatusKind s, fmi2Integer* value) {
-
-    UNUSED(c);
-    UNUSED(s);
-    UNUSED(value);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2GetBooleanStatus(fmi2Component c, const fmi2StatusKind s, fmi2Boolean* value) {
-
-    UNUSED(c);
-    UNUSED(s);
-    UNUSED(value);
-
-    NOT_IMPLEMENTED
-}
-
-fmi2Status fmi2GetStringStatus(fmi2Component c, const fmi2StatusKind s, fmi2String*  value) {
-
-    UNUSED(c);
-    UNUSED(s);
-    UNUSED(value);
-
-    NOT_IMPLEMENTED
-}
+fmi2Status fmi2GetStatus(fmi2Component c, const fmi2StatusKind s, fmi2Status*  value) { return fmi2Error; }
+fmi2Status fmi2GetRealStatus(fmi2Component c, const fmi2StatusKind s, fmi2Real*    value) { return fmi2Error; }
+fmi2Status fmi2GetIntegerStatus(fmi2Component c, const fmi2StatusKind s, fmi2Integer* value) { return fmi2Error; }
+fmi2Status fmi2GetBooleanStatus(fmi2Component c, const fmi2StatusKind s, fmi2Boolean* value) { return fmi2Error; }
+fmi2Status fmi2GetStringStatus(fmi2Component c, const fmi2StatusKind s, fmi2String*  value) { return fmi2Error; }

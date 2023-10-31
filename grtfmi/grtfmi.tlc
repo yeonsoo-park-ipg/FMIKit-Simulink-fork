@@ -15,9 +15,6 @@
 %include "grtfmilib.tlc"
 %include "grtfmixml.tlc"
 
-%if FMIVersion == "3" && SourceCodeFMU
-  %include "grtfmibd.tlc"
-%endif
 
 %% The contents between 'BEGIN_RTW_OPTIONS' and 'END_RTW_OPTIONS' in this file
 %% are used to maintain backward compatibility to R13 and preR13 custom target 
@@ -31,8 +28,7 @@
   rtwoptions(i).type          = 'Category';
   rtwoptions(i).enable        = 'on';
   rtwoptions(i).default       = 5;
-  rtwoptions(i).popupstrings  = '';
-  rtwoptions(i).tlcvariable   = '';
+  rtwoptions(i).tlcvariable   = ''; 
   rtwoptions(i).tooltip       = '';
   rtwoptions(i).callback      = '';
   rtwoptions(i).makevariable  = '';
@@ -94,7 +90,6 @@
   rtwoptions(i).type          = 'Category';
   rtwoptions(i).enable        = 'on';
   rtwoptions(i).default       = 4;
-  rtwoptions(i).popupstrings  = '';
   rtwoptions(i).tlcvariable   = '';
   rtwoptions(i).tooltip       = '';
   rtwoptions(i).callback      = '';

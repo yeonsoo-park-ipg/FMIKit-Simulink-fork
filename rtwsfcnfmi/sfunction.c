@@ -134,15 +134,16 @@ static int_T setNumDWork_FMI(SimStruct* S, int_T numDWork)
 
 static int_T SetInputPortDimensionInfoFcn_FMI(SimStruct *S, int_T port) {
 
-	const size_t typeSize = getCGTypeSize(S->portInfo.inputs[port].dataTypeId);
-	const int_T  width    = S->portInfo.inputs[port].width;
+	size_t typeSize = getCGTypeSize(S->portInfo.inputs[port].dataTypeId);
+	int_T width = S->portInfo.inputs[port].width;
 
-	void** inputPtrs    = (void**)calloc(width, sizeof(void*));
-	char*  inputSignals = (char* )calloc(width, typeSize);
+	void **inputPtrs   = (void **)calloc(width, sizeof(void *));
+	void *inputSignals = (void  *)calloc(width, typeSize);
 
 	/* Allocate port signal vectors */
 	for (int i = 0; i < width; i++) {
-		inputPtrs[i] = &inputSignals[i * typeSize];
+		inputPtrs[i] = inputSignals;
+		((char *)inputSignals) += typeSize;
 	}
 	
 	S->portInfo.inputs[port].signal.ptrs = (InputPtrsType)inputPtrs;
