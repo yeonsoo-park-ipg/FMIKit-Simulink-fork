@@ -10,7 +10,6 @@ paths = {
   {'common', 'foundation', 'core'}
   {'simscape', 'engine', 'core'}
   {'simscape', 'engine', 'sli'}
-  {'simscape', 'simtypes', 'core'}
 };
 
 sources = {};

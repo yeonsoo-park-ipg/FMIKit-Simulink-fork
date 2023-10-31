@@ -5,7 +5,7 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, rtwRoot, templateMakefile, 
 
     current_dir = pwd;
 
-    if strcmp(get_param(modelName, 'GenCodeOnly'), 'on')
+    if strcmp(get_param(gcs, 'GenCodeOnly'), 'on')
         return
     end
 
@@ -19,7 +19,7 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, rtwRoot, templateMakefile, 
     % create the archive directory (uncompressed FMU)
     mkdir('FMUArchive');
 
-    template_dir = get_param(modelName, 'FMUTemplateDir');
+    template_dir = get_param(gcs, 'FMUTemplateDir');
 
     % copy template files
     if ~isempty(template_dir)
@@ -32,7 +32,7 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, rtwRoot, templateMakefile, 
         return
     end
     % add model.png
-    if strcmp(get_param(modelName, 'AddModelImage'), 'on')
+    if strcmp(get_param(gcs, 'AddModelImage'), 'on')
         % create an image of the model
         print(['-s' modelName], '-dpng', fullfile('FMUArchive', 'model.png'));
     else
@@ -40,7 +40,8 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, rtwRoot, templateMakefile, 
         copyfile(fullfile(grtfmi_dir, 'model.png'), fullfile('FMUArchive', 'model.png'));
     end
 
-
+    % Build Configuration Parameters
+    % FMI
     source_code_fmu     = get_param(modelName, 'SourceCodeFMU');
     fmi_version         = get_param(modelName, 'FMIVersion');
 
@@ -202,7 +203,7 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, rtwRoot, templateMakefile, 
         status = system(command);
         assert(status == 0, 'Failed to run CMake generator');
 
-        disp('### Building FMU')
+    disp('### Building FMU')
         [command, errmsg] = sprintf('%s --build . --config %s', cmake_command, build_configuration);
         status = system(command);
         assert(status == 0, 'Failed to build FMU');
@@ -217,15 +218,15 @@ end
 
 function joined = cmake_list(array)
 
-    if isempty(array)
-        joined = '';
-        return
-    end
+if isempty(array)
+    joined = '';
+    return
+end
 
 joined = array{1};
 
-    for i = 2:numel(array)
-        joined = [joined ';' array{i}];  
-    end
+for i = 2:numel(array)
+    joined = [joined ';' array{i}];  
+end
 
 end

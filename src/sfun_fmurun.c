@@ -211,39 +211,21 @@ static FMIVariableType variableType(SimStruct *S, Parameter parameter, int index
 }
 
 static DTypeId simulinkVariableType(SimStruct *S, Parameter parameter, size_t index) {
-	
 	const mxArray *param = ssGetSFcnParam(S, parameter);
 	const real_T realValue = ((real_T *)mxGetData(param))[index];
 	const int intValue = (int)realValue;
-	const FMIVariableType type = (FMIVariableType)intValue;
-	
+	FMIVariableType type = (FMIVariableType)intValue;
 	switch (type) {
-	case FMIFloat32Type:
-	case FMIDiscreteFloat32Type:
-		return SS_SINGLE;
-	case FMIFloat64Type:
-	case FMIDiscreteFloat64Type:
-		return SS_DOUBLE;
-	case FMIInt8Type:     
-		return SS_INT8;
-	case FMIUInt8Type:    
-		return SS_UINT8;
-	case FMIInt16Type:    
-		return SS_INT16;
-	case FMIUInt16Type:   
-		return SS_UINT16;
-	case FMIInt32Type:    
-		return SS_INT32;
-	case FMIUInt32Type:   
-		return SS_UINT32;
-	case FMIInt64Type:    
-		return SS_INT32;
-	case FMIUInt64Type:   
-		return SS_UINT32;
-	case FMIBooleanType:  
-		return SS_BOOLEAN;
-	default:              
-		return -1; // error
+	case FMIFloat32Type:  return SS_SINGLE;
+	case FMIFloat64Type:  return SS_DOUBLE;
+	case FMIInt8Type:     return SS_INT8;
+	case FMIUInt8Type:    return SS_UINT8;
+	case FMIInt16Type:    return SS_INT16;
+	case FMIUInt16Type:   return SS_UINT16;
+	case FMIInt32Type:    return SS_INT32;
+	case FMIUInt32Type:   return SS_UINT32;
+	case FMIBooleanType:  return SS_BOOLEAN;
+	default:              return -1; // error
 	}
 }
 
@@ -259,22 +241,6 @@ static int outputPortWidth(SimStruct *S, size_t index) {
 
 static int ny(SimStruct *S) { 
 	return (int)mxGetNumberOfElements(ssGetSFcnParam(S, outputPortWidthsParam));
-}
-
-static bool initialized(SimStruct* S) {
-
-	void** p = ssGetPWork(S);
-
-	FMIInstance* instance = (FMIInstance*)p[0];
-
-	switch (instance->state) {
-	case FMI2EventModeState:
-	case FMI2ContinuousTimeModeState:
-	case FMI2StepCompleteState:
-		return true;
-	default: 
-		return false;
-	}
 }
 
 static void logCall(SimStruct *S, const char* message) {
@@ -347,11 +313,17 @@ static void cb_logMessage(FMIInstance *instance, FMIStatus status, const char *c
 	logCall(S, buf);
 }
 
-static void cb_logFunctionCall(FMIInstance *instance, FMIStatus status, const char *message) {
+static void cb_logFunctionCall(FMIInstance *instance, FMIStatus status, const char *message, ...) {
 	
 	char buf[FMI_MAX_MESSAGE_LENGTH];
 
-	snprintf(buf, FMI_MAX_MESSAGE_LENGTH, "[%s] %s", instance->name, message);
+	size_t len = snprintf(buf, FMI_MAX_MESSAGE_LENGTH, "[%s] ", instance->name);
+
+	va_list args;
+
+	va_start(args, message);
+	len += vsnprintf(&buf[len], FMI_MAX_MESSAGE_LENGTH - len, message, args);
+	va_end(args);
 
 	appendStatus(status, buf, FMI_MAX_MESSAGE_LENGTH);
 
@@ -598,24 +570,6 @@ static void setInput(SimStruct *S, bool direct, bool discrete, bool *inputEvent)
 			case FMIUInt32Type:
 				CHECK_STATUS(FMI3SetUInt32(instance, &vr, 1, (const uint32_T *)y, nValues));
 				break;
-			case FMIInt64Type: {
-				fmi3Int64* values = (fmi3Int64*)calloc(nValues, sizeof(fmi3Int64));
-				for (int j = 0; j < nValues; j++) {
-					values[j] = ((const int32_T*)y)[j];
-				}
-				CHECK_STATUS(FMI3SetInt64(instance, &vr, 1, values, nValues));
-				free(values);
-				break;
-			}
-			case FMIUInt64Type: {
-				fmi3UInt64* values = (fmi3UInt64*)calloc(nValues, sizeof(fmi3UInt64));
-				for (int j = 0; j < nValues; j++) {
-					values[j] = ((const uint32_T*)y)[j];
-				}
-				CHECK_STATUS(FMI3SetUInt64(instance, &vr, 1, values, nValues));
-				free(values);
-				break;
-			}
 			case FMIBooleanType: {
 				fmi3Boolean *values = (fmi3Boolean *)calloc(nValues, sizeof(fmi3Boolean));
 				for (int j = 0; j < nValues; j++) {
@@ -734,24 +688,6 @@ static void getOutput(SimStruct *S) {
 			case FMIUInt32Type:
 				CHECK_STATUS(FMI3GetUInt32(instance, &vr, 1, (uint32_T *)y, nValues));
 				break;
-			case FMIInt64Type: {
-				fmi3Int64* values = (fmi3Int64*)calloc(nValues, sizeof(fmi3Int64));
-				CHECK_STATUS(FMI3GetInt64(instance, &vr, 1, values, nValues));
-				for (int j = 0; j < nValues; j++) {
-					((int32_T*)y)[j] = values[j];
-				}
-				free(values);
-				break;
-			}
-			case FMIUInt64Type: {
-				fmi3UInt64* values = (fmi3UInt64*)calloc(nValues, sizeof(fmi3UInt64));
-				CHECK_STATUS(FMI3GetUInt64(instance, &vr, 1, values, nValues));
-				for (int j = 0; j < nValues; j++) {
-					((uint32_T*)y)[j] = values[j];
-				}
-				free(values);
-				break;
-			}
 			case FMIBooleanType: {
 				fmi3Boolean *values = (fmi3Boolean *)calloc(nValues, sizeof(fmi3Boolean));
 				CHECK_STATUS(FMI3GetBoolean(instance, &vr, 1, values, nValues));
@@ -871,8 +807,6 @@ static void update(SimStruct *S, bool inputEvent) {
 		nextEventTime     = instance->fmi2Functions->eventInfo.nextEventTime;
     } else {
         // TODO
-		upcomingTimeEvent = false;
-		nextEventTime     = 0;
     }
 
 	// Work around for the event handling in Dymola FMUs:
@@ -1079,7 +1013,7 @@ static void initialize(SimStruct *S) {
             CHECK_STATUS(FMI1InitializeSlave(instance, time, stopTime > time, stopTime));
         } else {
             CHECK_STATUS(FMI1SetTime(instance, time));
-            CHECK_STATUS(FMI1Initialize(instance, toleranceDefined, relativeTolerance(S), &instance->fmi1Functions->eventInfo));
+            CHECK_STATUS(FMI1Initialize(instance, toleranceDefined, relativeTolerance(S)));
             if (instance->fmi1Functions->eventInfo.terminateSimulation) {
                 setErrorStatus(S, "Model requested termination at init");
                 return;
@@ -1091,6 +1025,7 @@ static void initialize(SimStruct *S) {
         CHECK_ERROR(setParameters(S, false, false));
         CHECK_STATUS(FMI2SetupExperiment(instance, toleranceDefined, relativeTolerance(S), time, stopTime > time, stopTime));
         CHECK_STATUS(FMI2EnterInitializationMode(instance));
+        CHECK_STATUS(FMI2ExitInitializationMode(instance));
 
     } else {
 
@@ -1103,16 +1038,11 @@ static void initialize(SimStruct *S) {
         CHECK_ERROR(setParameters(S, false, false));
 
         CHECK_STATUS(FMI3EnterInitializationMode(instance, toleranceDefined, relativeTolerance(S), time, stopTime > time, stopTime));
+        CHECK_STATUS(FMI3ExitInitializationMode(instance));
 
     }
 
     if (isME(S)) {
-
-		if (isFMI2(S)) {
-			CHECK_STATUS(FMI2ExitInitializationMode(instance));
-		} else {
-			CHECK_STATUS(FMI3ExitInitializationMode(instance));
-		}
 
         // initialize the continuous states
         real_T *x = ssGetContStates(S);
@@ -1260,6 +1190,7 @@ static void mdlEnable(SimStruct *S) {
     if (!isFMI1(S)) {
         strcat(fmuResourceLocation, "/resources");
     }
+
     
     // instantiate the FMU
     if (isFMI1(S)) {
@@ -1565,11 +1496,7 @@ static void mdlInitializeSizes(SimStruct *S) {
 	for (int i = 0; i < nu(S); i++) {
 		ssSetInputPortWidth(S, i, inputPortWidth(S, i));
 		ssSetInputPortRequiredContiguous(S, i, 1); // direct input signal access
-		const DTypeId type = simulinkVariableType(S, inputPortTypesParam, i);
-		if (type < 0) {
-			setErrorStatus(S, "Unexpected type id for input port %d.", i);
-			return;
-		}
+		DTypeId type = simulinkVariableType(S, inputPortTypesParam, i);
 		ssSetInputPortDataType(S, i, type);
 		bool dirFeed = inputPortDirectFeedThrough(S, i);
 		ssSetInputPortDirectFeedThrough(S, i, dirFeed); // direct feed through
@@ -1588,10 +1515,6 @@ static void mdlInitializeSizes(SimStruct *S) {
 	for (int i = 0; i < ny(S); i++) {
 		ssSetOutputPortWidth(S, i, outputPortWidth(S, i));
 		DTypeId type = simulinkVariableType(S, outputPortTypesParam, i);
-		if (type < 0) {
-			setErrorStatus(S, "Unexpected type id for output port %d.", i);
-			return;
-		}
 		ssSetOutputPortDataType(S, i, type);
 	}
 
@@ -1612,8 +1535,14 @@ static void mdlInitializeSampleTimes(SimStruct *S) {
 
 	logDebug(S, "mdlInitializeSampleTimes()");
 
-	ssSetSampleTime(S, 0, sampleTime(S));
-	ssSetOffsetTime(S, 0, offsetTime(S));
+	if (isCS(S)) {
+		ssSetSampleTime(S, 0, sampleTime(S));
+		ssSetOffsetTime(S, 0, offsetTime(S));
+	} else {
+		ssSetSampleTime(S, 0, CONTINUOUS_SAMPLE_TIME);
+		ssSetOffsetTime(S, 0, offsetTime(S));
+	}
+
 }
 
 
@@ -1774,25 +1703,16 @@ static void mdlOutputs(SimStruct *S, int_T tid) {
 		const time_T h = time - instance->time;
 
 		if (h > 0) {
-
-			if (!initialized(S)) {
-				if (isFMI2(S)) {
-					CHECK_STATUS(FMI2ExitInitializationMode(instance));
-				} else if (isFMI3(S)) {
-					CHECK_STATUS(FMI3ExitInitializationMode(instance));
-				}
-			}
-
 			if (isFMI1(S)) {
 				CHECK_STATUS(FMI1DoStep(instance, instance->time, h, fmi1True));
 			} else if (isFMI2(S)) {
-				CHECK_STATUS(FMI2DoStep(instance, instance->time, h, fmi2True));
+				CHECK_STATUS(FMI2DoStep(instance, instance->time, h, fmi2False));
 			} else {
 				fmi3Boolean eventEncountered;
 				fmi3Boolean terminateSimulation;
 				fmi3Boolean earlyReturn;
 				fmi3Float64 lastSuccessfulTime;
-				CHECK_STATUS(FMI3DoStep(instance, instance->time, h, fmi3True, &eventEncountered, &terminateSimulation, &earlyReturn, &lastSuccessfulTime));
+				CHECK_STATUS(FMI3DoStep(instance, instance->time, h, fmi2False, &eventEncountered, &terminateSimulation, &earlyReturn, &lastSuccessfulTime));
                 // TODO: handle terminateSimulation == true
 			}
 		}
@@ -1805,10 +1725,6 @@ static void mdlOutputs(SimStruct *S, int_T tid) {
 #define MDL_UPDATE
 #if defined(MDL_UPDATE)
 static void mdlUpdate(SimStruct *S, int_T tid) {
-
-	void** p = ssGetPWork(S);
-
-	FMIInstance* instance = (FMIInstance*)p[0];
 
 	logDebug(S, "mdlUpdate(tid=%d, time=%.16g, majorTimeStep=%d)", tid, ssGetT(S), ssIsMajorTimeStep(S));
 
@@ -1925,29 +1841,21 @@ static void mdlTerminate(SimStruct *S) {
 		    if (isFMI1(S)) {
 		
 			    if (isME(S)) {
-					if (initialized(S)) {
-						CHECK_STATUS(FMI1Terminate(instance));
-					}
+				    CHECK_STATUS(FMI1Terminate(instance));
 				    FMI1FreeModelInstance(instance);
 			    } else {
-					if (initialized(S)) {
-						CHECK_STATUS(FMI1TerminateSlave(instance));
-					}
+				    CHECK_STATUS(FMI1TerminateSlave(instance));
 				    FMI1FreeSlaveInstance(instance);
 			    }
 
 		    } else if (isFMI2(S)) {
-				
-				if (initialized(S)) {
-					CHECK_STATUS(FMI2Terminate(instance));
-				}
+			
+			    CHECK_STATUS(FMI2Terminate(instance));
 			    FMI2FreeInstance(instance);
 		
 		    } else {
-
-				if (initialized(S)) {
-					CHECK_STATUS(FMI3Terminate(instance));
-				}
+		
+			    CHECK_STATUS(FMI3Terminate(instance));
 			    FMI3FreeInstance(instance);
 		
 		    }

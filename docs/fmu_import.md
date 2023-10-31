@@ -71,7 +71,7 @@ The folder where the FMU is extracted. The path can be absolute or relative to t
 
 ### Sample Time
 
-The sample time for the FMU block (use `0` for continuous and `-1` for inherited).
+The sample time for the FMU block (use `-1` for inherited)
 
 ### Relative Tolerance
 
@@ -155,14 +155,6 @@ FMIKit.loadFMU(gcb, 'Controller.fmu')
 ```
 
 loads the FMU `Controller.fmu` into the current FMU block.
-
-### Change the Interface Type
-
-The Interface Type of the FMU block can be changed with
-
-```
-FMIKit.setInterfaceType(gcb, 'CoSimulation');
-```
 
 ### Change the Output Ports
 

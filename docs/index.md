@@ -8,7 +8,7 @@ FMI Kit supports...
 
 - FMI 1.0, 2.0, and 3.0
 - Model Exchange and Co-Simulation
-- MATLAB R2016a - R2023a
+- MATLAB R2016a - R2022a
 
 See the [changelog](changelog.html) for a list of changes in this version.
 For updates visit the [project on GitHub](https://github.com/CATIA-Systems/FMIKit-Simulink).
@@ -23,5 +23,5 @@ Create FMUs from Simulink models (requires [Simulink Coder](https://mathworks.co
 
 ## License
 
-Copyright &copy; 2023 Dassault Syst&egrave;mes.
+Copyright &copy; 2022 Dassault Syst&egrave;mes.
 The code is released under the 2-Clause BSD license.

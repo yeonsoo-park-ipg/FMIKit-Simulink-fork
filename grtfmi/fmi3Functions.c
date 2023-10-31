@@ -20,9 +20,6 @@ const char *FMU_RESOURCES_DIR = NULL;
 
 typedef struct {
     RT_MDL_TYPE *S;
-#ifdef RT_MDL_P_T
-    RT_MDL_P_T defaultParameters;
-#endif
     const char *instanceName;
     fmi3LogMessageCallback logger;
     fmi3InstanceEnvironment componentEnvironment;
@@ -162,15 +159,8 @@ fmi3Instance fmi3InstantiateCoSimulation(
         FMU_RESOURCES_DIR = strdup(resourcePath);
     }
 
-    s_instance = (ModelInstance*)calloc(1, sizeof(ModelInstance));
+	s_instance = malloc(sizeof(ModelInstance));
 
-    if (!s_instance) {
-        return NULL;
-    }
-
-#ifdef RT_MDL_P
-    memcpy(&s_instance->defaultParameters, &RT_MDL_P, sizeof(RT_MDL_P_T));
-#endif
     s_instance->instanceName = strdup(instanceName);
     s_instance->logger = logMessage;
     s_instance->componentEnvironment = instanceEnvironment;
@@ -268,12 +258,6 @@ fmi3Status fmi3Reset(fmi3Instance instance) {
     if (s_instance->S) {
         MODEL_TERMINATE();
     }
-
-    s_instance->S = RT_MDL_INSTANCE;
-
-#ifdef RT_MDL_P
-    memcpy(&RT_MDL_P, &s_instance->defaultParameters, sizeof(RT_MDL_P_T));
-#endif
 
 	return fmi3OK;
 }
@@ -430,40 +414,7 @@ fmi3Status fmi3GetInt64(fmi3Instance instance,
     size_t nValueReferences,
     fmi3Int64 values[],
     size_t nValues) {
-    
-    ASSERT_INSTANCE
-
-    size_t i, j, index, copied = 0;
-    ModelVariable* v;
-
-    for (i = 0; i < nValueReferences; i++) {
-
-        index = valueReferences[i] - 1;
-
-        if (index >= N_MODEL_VARIABLES) {
-            return fmi3Error;
-        }
-
-        v = &s_instance->modelVariables[index];
-
-        if (v->dtypeID != SS_INT32) {
-            return fmi3Error;
-        }
-
-        if (copied + v->size > nValues) {
-            return fmi3Error;
-        }
-
-        for (j = 0; j < v->size; j++) {
-            ((fmi3Int64*)values)[j] = ((int32_T*)v->address)[j];
-        }
-
-        values += v->size;
-
-        copied += v->size;
-    }
-
-    return fmi3OK;
+    NOT_IMPLEMENTED
 }
 
 fmi3Status fmi3GetUInt64(fmi3Instance instance,
@@ -642,40 +593,7 @@ fmi3Status fmi3SetInt64(fmi3Instance instance,
     size_t nValueReferences,
     const fmi3Int64 values[],
     size_t nValues) {
-
-    ASSERT_INSTANCE
-
-    size_t i, j, index, copied = 0;
-    ModelVariable* v;
-
-    for (i = 0; i < nValueReferences; i++) {
-
-        index = valueReferences[i] - 1;
-
-        if (index >= N_MODEL_VARIABLES) {
-            return fmi3Error;
-        }
-
-        v = &s_instance->modelVariables[index];
-
-        if (v->dtypeID != SS_INT32) {
-            return fmi3Error;
-        }
-
-        if (copied + v->size > nValues) {
-            return fmi3Error;
-        }
-
-        for (j = 0; j < v->size; j++) {
-            ((int32_T*)v->address)[j] = ((fmi3Int64*)values)[j];
-        }
-
-        values += v->size;
-
-        copied += v->size;
-    }
-
-    return fmi3OK;
+    NOT_IMPLEMENTED
 }
 
 fmi3Status fmi3SetUInt64(fmi3Instance instance,
@@ -746,6 +664,7 @@ fmi3Status fmi3SetFMUState(fmi3Instance instance, fmi3FMUState  FMUState) {
 }
 
 fmi3Status fmi3FreeFMUState(fmi3Instance instance, fmi3FMUState* FMUState) {
+    ASSERT_INSTANCE
     NOT_IMPLEMENTED
 }
 

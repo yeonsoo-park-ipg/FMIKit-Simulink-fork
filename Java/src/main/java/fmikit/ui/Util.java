@@ -11,7 +11,6 @@ import fmikit.ScalarVariable;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.io.File;
@@ -56,11 +55,9 @@ public class Util {
 	}
 
 	public static void setNodeExpandedState(JTree tree, DefaultMutableTreeNode node, boolean expanded) {
-		ArrayList list = Collections.list(node.children());
-		for (Object treeNode : list) {
-			if (treeNode instanceof DefaultMutableTreeNode) {
-				setNodeExpandedState(tree, (DefaultMutableTreeNode) treeNode, expanded);
-			}
+		ArrayList<DefaultMutableTreeNode> list = Collections.list(node.children());
+		for (DefaultMutableTreeNode treeNode : list) {
+			setNodeExpandedState(tree, treeNode, expanded);
 		}
 		if (!expanded && node.isRoot()) {
 			return;
@@ -176,7 +173,7 @@ public class Util {
 			throw new FileNotFoundException("Failed to delete file: " + f);
 	}
 
-	public static int typeEnumForVariable(final ScalarVariable variable, final String fmiVersion) {
+	public static int typeEnumForVariable(ScalarVariable variable) {
 
 		final String type = variable.type;
 		final boolean discrete = "tunable".equals(variable.variability) || "discrete".equals(variable.variability);
@@ -193,7 +190,7 @@ public class Util {
 			return 6;
 		} else if ("UInt16".equals(type)) {
 			return 7;
-		} else if ("Int32".equals(type) || "Integer".equals(type)) {
+		} else if ("Int32".equals(type) || "Integer".equals(type) || "Enumeration".equals(type)) {
 			return 8;
 		} else if ("UInt32".equals(type)) {
 			return 9;
@@ -209,12 +206,6 @@ public class Util {
 			return 14;
 		} else if ("Clock".equals(type)) {
 			return 15;
-		} else if ("Enumeration".equals(type)) {
-			if ("1.0".equals(fmiVersion) || "2.0".equals(fmiVersion)) {
-				return 8;
-			} else {
-				return 10;
-			}
 		}
 
 		throw new RuntimeException("Unknown variable type: " + type);

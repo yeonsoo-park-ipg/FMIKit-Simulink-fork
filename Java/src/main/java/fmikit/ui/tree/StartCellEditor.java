@@ -26,7 +26,6 @@ public class StartCellEditor extends DefaultCellEditor {
 	
 	@Override
 	public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-
 		JTextField component = (JTextField) super.getTableCellEditorComponent(table, value, isSelected, row, column);
 		
 		ScalarVariable sv = (ScalarVariable) value;
@@ -34,7 +33,7 @@ public class StartCellEditor extends DefaultCellEditor {
 		if (startValues.containsKey(sv.name)) {
 			component.setText(startValues.get(sv.name));
 		} else {
-			component.setText("String".equals(sv.type) ? "'" + sv.startValue + "'" : sv.startValue);
+			component.setText(sv.startValue);				
 		}
 		
 		return component;

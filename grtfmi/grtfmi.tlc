@@ -94,7 +94,7 @@
   rtwoptions(i).type          = 'Category';
   rtwoptions(i).enable        = 'on';
   rtwoptions(i).default       = 4;
-  rtwoptions(i).popupstrings  = ''; 
+  rtwoptions(i).popupstrings  = '';
   rtwoptions(i).tlcvariable   = '';
   rtwoptions(i).tooltip       = '';
   rtwoptions(i).callback      = '';
