@@ -132,7 +132,7 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, rtwRoot, templateMakefile, 
             [cmake_flags_windows, errmsg] = sprintf('%s -DCMAKE_MAKE_PROGRAM="%s"', cmake_flags_windows, strrep(make, '\', '/'));
         end
         [cmake_flags_windows, errmsg] = sprintf('%s -DCOMPILER_OPTIMIZATION_FLAGS="%s %s"', cmake_flags_windows, optimization_flags, optimization_flags_windows);
-        [cmake_flags_windows, errmsg] = sprintf('%s %s"', cmake_flags_windows, cmake_flags);
+        [cmake_flags_windows, errmsg] = sprintf('%s %s', cmake_flags_windows, cmake_flags);
     
         disp('### Generating project')
     
@@ -162,7 +162,7 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, rtwRoot, templateMakefile, 
         [cmake_flags_linux, errmsg] = sprintf('%s -DCMAKE_C_COMPILER="%s"', cmake_flags_linux, strrep(compiler, '\', '/'));
         [cmake_flags_linux, errmsg] = sprintf('%s -DCMAKE_MAKE_PROGRAM="%s"', cmake_flags_linux, strrep(make, '\', '/'));
         [cmake_flags_linux, errmsg] = sprintf('%s -DCOMPILER_OPTIMIZATION_FLAGS="%s %s"', cmake_flags_linux, optimization_flags, optimization_flags_linux);
-        [cmake_flags_linux, errmsg] = sprintf('%s %s"', cmake_flags_linux, cmake_flags);
+        [cmake_flags_linux, errmsg] = sprintf('%s %s', cmake_flags_linux, cmake_flags);
         
         disp('### Generating project')
         [command, errmsg] = sprintf('%s %s "%s"', cmake_command, cmake_flags_linux, strrep(grtfmi_dir, '\', '/'));
@@ -195,7 +195,7 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, rtwRoot, templateMakefile, 
             [cmake_flags_darwin, errmsg] = sprintf('%s -T "%s"', cmake_flags_darwin, toolset);
         end
         [cmake_flags_darwin, errmsg] = sprintf('%s -DCOMPILER_OPTIMIZATION_FLAGS="%s %s"', cmake_flags_darwin, optimization_flags, optimization_flags_darwin);
-        [cmake_flags_darwin, errmsg] = sprintf('%s %s"', cmake_flags_darwin, cmake_flags);
+        [cmake_flags_darwin, errmsg] = sprintf('%s %s', cmake_flags_darwin, cmake_flags);
         
         disp('### Generating project')
         [command, errmsg] = sprintf('%s %s "%s"', cmake_command, cmake_flags_darwin, strrep(grtfmi_dir, '\', '/'));
