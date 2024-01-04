@@ -191,7 +191,8 @@
                                 'Visual Studio 12 2013|' ...
                                 'Visual Studio 11 2012|' ...
                                 'Visual Studio 10 2010|' ...
-                                'MinGW Makefiles'];
+                                'MinGW Makefiles|'...
+								'Ninja'];
   rtwoptions(i).tlcvariable   = 'CMakeGeneratorWindows';
   rtwoptions(i).tooltip       = 'CMake generator to build the shared library';
   
@@ -245,7 +246,8 @@
   rtwoptions(i).prompt        = 'CMake generator';
   rtwoptions(i).type          = 'Popup';
   rtwoptions(i).default       = 'Unix Makefiles';
-  rtwoptions(i).popupstrings  = ['Unix Makefiles'];
+  rtwoptions(i).popupstrings  = ['Unix Makefiles|'...
+								'Ninja'];
   rtwoptions(i).tlcvariable   = 'CMakeGeneratorLinux';
   rtwoptions(i).tooltip       = 'CMake generator to build the shared library';
   
