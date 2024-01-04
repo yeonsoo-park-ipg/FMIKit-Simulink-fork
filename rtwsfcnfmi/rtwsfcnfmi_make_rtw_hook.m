@@ -53,23 +53,24 @@ switch hookMethod
         command = get_param(modelName, 'CMakeCommand');
         command = grtfmi_find_cmake(command);
         generator = get_param(modelName, 'CMakeGenerator');
-        toolset             = get_param(modelName, 'CMakeToolset');
+        toolset = get_param(modelName, 'CMakeToolset');
         build_configuration = get_param(modelName, 'CMakeBuildConfiguration');
         
+        version = str2double(ver('MATLAB').Version);
+        
+        major_version = floor(version);
+        minor_version = num2str((version - major_version) * 100);
+        
         % MATLAB version for conditional compilation
-        if verLessThan('matlab', '7.12')
-            matlab_version = '';  % do nothing
-        elseif verLessThan('matlab', '8.5')
-            matlab_version = 'MATLAB_R2011a_';  % R2011a - R2014b
-        elseif verLessThan('matlab', '9.3')
-            matlab_version = 'MATLAB_R2015a_';  % R2015a - R2017a
-        elseif verLessThan('matlab', '9.8')
-            matlab_version = 'MATLAB_R2017b_';  % R2017b - R2019b
+        matlab_version = num2str(major_version);
+        
+        if strcmp(minor_version(2), '0')
+            matlab_version = [matlab_version '0' minor_version(1)];
         else
-            matlab_version = 'MATLAB_R2020a_';  % R2020a and later
+            matlab_version = [matlab_version minor_version];
         end
         
-        solver = buildOpts.solver;
+        solver = get_param(modelName, 'Solver');
         if ~strcmp(solver, {'ode1', 'ode2', 'ode3', 'ode4', 'ode5', 'ode8', 'ode14x'})
             solver = 'ode1';  % use ode1 for model exchange
         end
@@ -109,14 +110,19 @@ switch hookMethod
         fclose(fid);
         
         disp('### Generating project')
-        
-        if ~isempty(toolset)
-            toolset_option = [' -T "' toolset '"'];
-        else
-            toolset_option = '';
+
+        cmake_options = [' -G "' generator '"'];
+
+        if ispc
+            generator_platform = get_param(modelName, 'CMakeGeneratorPlatform');
+            cmake_options = [cmake_options ' -A ' generator_platform];
         end
-        
-        status = system(['"' command '" -G "' generator '"' toolset_option ' "' strrep(rtwsfcnfmi_dir, '\', '/') '"']);
+
+        if ~isempty(toolset)
+            cmake_options = [cmake_options ' -T "' toolset '"'];
+        end
+
+        status = system(['"' command '"' cmake_options ' "' strrep(rtwsfcnfmi_dir, '\', '/') '"']);
         assert(status == 0, 'Failed to run CMake generator');
 
         disp('### Building FMU')

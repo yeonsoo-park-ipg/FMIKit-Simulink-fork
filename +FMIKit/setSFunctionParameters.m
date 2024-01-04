@@ -10,39 +10,44 @@ end
 
 set_param(block, 'FunctionName', userData.functionName, 'Parameters', userData.parameters)
 
-pkginfo = what('FMIKit');
-[fmikitdir, ~, ~] = fileparts(pkginfo(1).path);
 mdl = getfullname(bdroot(block));
 [mdldir, ~, ~] = fileparts(which(mdl));
 unzipdir = fullfile(mdldir, userData.unzipDirectory);
 
-include_dirs = {['"' fullfile(fmikitdir, 'include') '"']};
-sources_files = {}; %#ok<*AGROW>
-
 if userData.useSourceCode
-    % generated S-function
-    include_dirs{end+1} = ['"' fullfile(unzipdir, 'sources') '"'];
+
+    pkginfo = what('FMIKit');
+    [fmikitdir, ~, ~] = fileparts(pkginfo(1).path);
+
+    include_dirs = { ...
+      ['"' fmikitdir '"'], ...
+      ['"' fullfile(fmikitdir, 'include') '"'], ...
+      ['"' fullfile(unzipdir, 'sources') '"']
+    };
     
-    it = dialog.getSourceFiles().listIterator();
-    
+    sources_files = {}; %#ok<*AGROW>
+
+    sourceFileSet = dialog.getSourceFileSet();
+
+    it = sourceFileSet.sourceFiles.listIterator();
     while it.hasNext()
         sources_files{end+1} = ['"' fullfile(unzipdir, 'sources', it.next()) '"'];
     end
-else
-    % generic S-function
-    sources_files{end+1} = ['"' fullfile(fmikitdir, 'src', 'FMU.cpp') '"'];
-    sources_files{end+1} = ['"' fullfile(fmikitdir, 'src', 'FMU1.cpp') '"'];
-    sources_files{end+1} = ['"' fullfile(fmikitdir, 'src', 'FMU2.cpp') '"'];
-end
 
-% S-function sources
-setSrcParams(mdl, 'SimUserIncludeDirs', include_dirs);
-setSrcParams(mdl, 'SimUserSources', sources_files);
+    it = sourceFileSet.includeDirectories.listIterator();
+    while it.hasNext()
+        include_dirs{end+1} = ['"' fullfile(unzipdir, 'sources', it.next()) '"'];
+    end
+    
+    % S-function sources
+    setSrcParams(mdl, 'SimUserIncludeDirs', include_dirs);
+    setSrcParams(mdl, 'SimUserSources', sources_files);
 
-% RTW sources
-if strcmp(get_param(mdl, 'RTWUseSimCustomCode'), 'off')
-    setSrcParams(mdl, 'CustomInclude',  include_dirs);
-    setSrcParams(mdl, 'CustomSource', sources_files);
+    % RTW sources
+    if strcmp(get_param(mdl, 'RTWUseSimCustomCode'), 'off')
+        setSrcParams(mdl, 'CustomInclude', include_dirs);
+        setSrcParams(mdl, 'CustomSource', sources_files);
+    end
 end
 
 end
