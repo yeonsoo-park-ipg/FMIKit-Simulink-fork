@@ -17,10 +17,8 @@ slConfigUISetVal(hDlg, hSrc, 'RetainRTWFile', 'on');
 
 % Reusable functions are not supported in R2012b
 params = get_param(gcs ,'ObjectParameters');
-if isfield(params, 'CodeInterfacePackaging')
-    slConfigUISetVal(hDlg, hSrc, 'CodeInterfacePackaging', 'Nonreusable function');
-    slConfigUISetEnabled(hDlg, hSrc, 'CodeInterfacePackaging', false);
-end
+slConfigUISetEnabled(hDlg, hSrc, 'CodeInterfacePackaging', true);
+slConfigUISetVal(hDlg, hSrc, 'CodeInterfacePackaging', 'Reusable function');
 
 % disable Mat file logging
 slConfigUISetVal(hDlg, hSrc, 'MatFileLogging', 'off');
