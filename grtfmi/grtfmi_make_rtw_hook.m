@@ -132,7 +132,7 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, rtwRoot, templateMakefile, 
             [cmake_flags_windows, errmsg] = sprintf('%s -DCMAKE_MAKE_PROGRAM="%s"', cmake_flags_windows, strrep(make, '\', '/'));
         end
         [cmake_flags_windows, errmsg] = sprintf('%s -DCOMPILER_OPTIMIZATION_FLAGS="%s %s"', cmake_flags_windows, optimization_flags, optimization_flags_windows);
-        [cmake_flags_windows, errmsg] = sprintf('%s %s"', cmake_flags_windows, cmake_flags);
+        [cmake_flags_windows, errmsg] = sprintf('%s %s', cmake_flags_windows, cmake_flags);
     
         disp('### Generating project')
     
