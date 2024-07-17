@@ -130,17 +130,6 @@
   rtwoptions(i).tooltip       = 'Build for Linux target with the settings of CMake:Linux tab when opted in.';
 
   i = i + 1;
-  rtwoptions(i).prompt           = 'Darwin';
-  rtwoptions(i).type           = 'Checkbox';
-  if ismac
-    rtwoptions(i).default       = 'on';
-  else
-    rtwoptions(i).default       = 'off';
-  end
-  rtwoptions(i).tlcvariable   = 'CMakeBuildDarwin';
-  rtwoptions(i).tooltip       = 'Build for Darwin target with the settings of CMake:Darwin tab when opted in.';
-
-  i = i + 1;
   rtwoptions(i).prompt        = 'Build configuration';
   rtwoptions(i).type          = 'Popup';
   rtwoptions(i).default       = 'Release';
@@ -272,24 +261,6 @@
   rtwoptions(i).tlcvariable   = 'CMakeCompilerOptimizationFlagsLinux';
   rtwoptions(i).tooltip       = 'Custom compiler optimization flags';
 
-  i = i + 1;
-  rtwoptions(i).prompt        = 'CMake:Darwin';
-  rtwoptions(i).type          = 'Category';
-  rtwoptions(i).enable        = 'on';
-  rtwoptions(i).default       = 4;
-  rtwoptions(i).tlcvariable   = '';
-  rtwoptions(i).tooltip       = '';
-  rtwoptions(i).callback      = '';
-  rtwoptions(i).makevariable  = '';
-
-  i = i + 1;
-  rtwoptions(i).prompt        = 'CMake generator';
-  rtwoptions(i).type          = 'Popup';
-  rtwoptions(i).default       = 'Xcode';
-  rtwoptions(i).popupstrings  = ['Xcode'];
-  rtwoptions(i).tlcvariable   = 'CMakeGeneratorDarwin';
-  rtwoptions(i).tooltip       = 'CMake generator to build the shared library';
-  
   i = i + 1;
   rtwoptions(i).prompt        = 'CMake compiler';
   rtwoptions(i).type          = 'Edit';

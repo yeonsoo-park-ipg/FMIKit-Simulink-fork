@@ -3,7 +3,7 @@ function is_lookup_table = grtfmi_is_lookup_table(record)
 
 is_lookup_table = false;
 
-if isfield(record, 'WorkspaceVarName')
+  if isfield(record, 'WorkspaceVarName')
   
   v = evalin('base', record.WorkspaceVarName);
   

@@ -8,6 +8,8 @@
 *.ilk
 *.lib
 *.pdb
+.zig-cache/
+zig-out/
 
 # generated S-function source
 sfun_fmurun.c

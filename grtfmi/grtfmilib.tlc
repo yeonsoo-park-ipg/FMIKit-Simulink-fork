@@ -117,7 +117,7 @@
   %return attribute
 %endfunction
 
-%function VariableFMI2(record, variableName, dataName, vr, variableAttr, typeAttr) Output
+%function VariableFMI2(record, variableName, dataName, vr, variableAttr, typeAttr, variability) Output
   %assign variableName = FEVAL("grtfmi_xml_encode", variableName)
   %assign dataTypeName = SLibGetRecordDataTypeName(record, "")
   %assign fmiType      = GetFMIType(record)
@@ -131,6 +131,13 @@
   %assign variableAttr = "%<variableAttr>%<descAttr>"
   %assign minMaxAttr   = MinMaxAttributes(record, fmiType)
   %assign typeAttr     = "%<typeAttr>%<minMaxAttr>"
+  %if ISEMPTY(variability)
+    %if dataTypeName == "real_T" || dataTypeName == "real32_T"
+      %assign variability = "continuous"
+    %else
+      %assign variability = "discrete"
+    %endif
+  %endif
   %if ISFIELD(record, "IsPseudoWorkspaceVar") && record.IsPseudoWorkspaceVar == "yes"
     %return vr
   %endif
@@ -153,7 +160,7 @@
             %assign subs = "[%<arrIdx>]"
           %endif
           %assign element = dataType.Elements[elementIdx]
-          %assign vr = VariableFMI2(element, "%<variableName>%<subs>.%<element.Name>", "%<dataName>%<subs>.%<element.Name>", vr, variableAttr, typeAttr)
+          %assign vr = VariableFMI2(element, "%<variableName>%<subs>.%<element.Name>", "%<dataName>%<subs>.%<element.Name>", vr, variableAttr, typeAttr, variability)
         %endforeach
       %endforeach
     %else
@@ -222,7 +229,7 @@
         %assign startAttr = ""
       %endif
       %selectfile xmlfile2
-    <ScalarVariable name="%<variableName>%<variableSubs>" valueReference="%<vr>"%<variableAttr>>
+    <ScalarVariable name="%<variableName>%<variableSubs>" valueReference="%<vr>"%<variableAttr> variability="%<variability>">
       <%<fmiType>%<startAttr>%<typeAttr>/>
     </ScalarVariable>
       %assign index = index + 1

@@ -2,13 +2,13 @@
 #pragma warning(disable : 4996)
 #endif
 
-#include "fmi3Functions.h"
-
 #include <float.h>  /* for DBL_EPSILON, FLT_MAX */
 #include <math.h>   /* for fabs() */
 #include <string.h> /* for strdup() */
 #include <stdarg.h> /* for va_list */
 #include <stdio.h>  /* for vsnprintf(), vprintf() */
+
+#include "fmi3Functions.h"
 
 #include "fmiwrapper.inc"
 
@@ -23,7 +23,7 @@ typedef struct {
 #ifdef RT_MDL_P_T
     RT_MDL_P_T defaultParameters;
 #endif
-    const char *instanceName;
+    const char* instanceName;
     fmi3LogMessageCallback logger;
     fmi3InstanceEnvironment componentEnvironment;
     ModelVariable modelVariables[N_MODEL_VARIABLES];

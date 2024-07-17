@@ -8,9 +8,10 @@
 #include <stdarg.h> /* for va_list */
 #include <stdio.h>  /* for vsnprintf(), vprintf() */
 
+#include "fmi2Functions.h"
+
 #include "fmiwrapper.inc"
 
-#include "fmi2Functions.h"
 
 const char *RT_MEMORY_ALLOCATION_ERROR = "memory allocation error";
 

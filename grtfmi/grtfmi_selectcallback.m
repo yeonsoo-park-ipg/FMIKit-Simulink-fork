@@ -16,7 +16,6 @@ slConfigUISetEnabled(hDlg, hSrc, 'GenerateMakefile', false);
 slConfigUISetVal(hDlg, hSrc, 'RetainRTWFile', 'on');
 
 % Reusable functions are not supported in R2012b
-params = get_param(gcs ,'ObjectParameters');
 slConfigUISetEnabled(hDlg, hSrc, 'CodeInterfacePackaging', true);
 slConfigUISetVal(hDlg, hSrc, 'CodeInterfacePackaging', 'Reusable function');
 
