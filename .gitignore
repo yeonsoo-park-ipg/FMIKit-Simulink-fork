@@ -10,7 +10,7 @@
 *.pdb
 .zig-cache/
 zig-out/
-
+.vscode/
 # generated S-function source
 sfun_fmurun.c
 

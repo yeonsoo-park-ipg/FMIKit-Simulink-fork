@@ -5,9 +5,9 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, ~, ~, ~, ~, ~)
     if strcmp(get_param(modelName, 'GenCodeOnly'), 'on')
         return
     end
-    disp(modelName)
-    [grtfmi_dir, ~, ~] = fileparts(which('grtfmi.tlc'));
 
+    [grtfmi_dir, ~, ~] = fileparts(which('grtfmi.tlc'));
+    [fmikit_dir, ~, ~] = fileparts(grtfmi_dir);
     % remove FMU build directory from previous build
     if exist('zig-out', 'dir')
         rmdir('zig-out', 's');
@@ -31,13 +31,28 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, ~, ~, ~, ~, ~)
     else
         copyfile(fullfile(grtfmi_dir, 'model.png'), fullfile(pwd, 'model.png'));
     end
-	fmi_version         = get_param(modelName, 'FMIVersion');
+    copyfile(fullfile(fmikit_dir, 'include'), fullfile(pwd, 'include'));
+    fmi_version         = get_param(modelName, 'FMIVersion');
 	fmufunctions = sprintf("fmi%sFunctions.c", fmi_version);
 	copyfile(fullfile(grtfmi_dir, fmufunctions), fullfile(pwd, fmufunctions));
-	copyfile(fullfile(matlabroot, 'rtw/c/src/rt_matrx.c'), fullfile(pwd, 'rt_matrx.c'));
-	copyfile(fullfile(grtfmi_dir, 'build.zig'), fullfile(pwd, 'build.zig'));
-	copyfile(fullfile(grtfmi_dir, 'copypdb.bat'), fullfile(pwd, 'copypdb.bat'));
-	
+
+    % Copy build.zig with string replacements for variables
+    build_zig = fileread(fullfile(grtfmi_dir, 'build.zig'));
+    build_zig = strrep(build_zig, '@MODELNAME@', modelName);
+    build_zig = strrep(build_zig, '@FMIVERSION@', fmi_version);
+    if isempty(find_system(modelName, 'BlockType', 'SimscapeBlock'))
+        build_zig = strrep(build_zig, '@SIMSCAPE@', 'false');
+    else
+        build_zig = strrep(build_zig, '@SIMSCAPE@', 'true');
+    end
+    build_zig = strrep(build_zig, '@MATLABVERSION@', version('-release'));
+    build_zig = strrep(build_zig, '@MATLABPATH@', strrep(matlabroot, '\', '/'));
+	f = fopen(fullfile(pwd, 'build.zig'), 'w');
+    fwrite(f, build_zig);
+    fclose(f);
+
+
+    
     source_code_fmu     = get_param(modelName, 'SourceCodeFMU');
     
 
@@ -69,9 +84,7 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, ~, ~, ~, ~, ~)
         end
     end
 
-    f = fopen('build.zig', 'r');
-    f = strrep(f, 'MODELNAME', modelName);
-    fclose(f);
+    
     disp('### Building FMU')
     status = system(["zig build --summary all"]);
     assert(status == 0, 'Failed to build FMU');
