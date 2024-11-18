@@ -11,18 +11,11 @@
 .zig-cache/
 zig-out/
 .vscode/
-# generated S-function source
-sfun_fmurun.c
+.vs/
 
 # help files
 *.html
 html/images/
-
-# re-saved block library
-FMIKit_blocks.slx
-
-# MATLAB App Installers
-*.mlappinstall
 
 # FMUs
 *.fmu
@@ -30,18 +23,6 @@ FMIKit_blocks.slx
 # MATALB and Simulink auto-save files
 *.asv
 *.autosave
-
-# Java binaries
-fmikit.jar
-*.class
-
-# CMake installation
-cmake-*/
-
-# CMake build directories
-build*/
-win32/
-win64/
 
 # Distribution files
 dist/

@@ -1,7 +1,7 @@
 const std: type = @import("std");
 const builtin: type = @import("builtin");
 const Dir: type = std.fs.Dir;
-const Walker: type = Dir.Walker;
+const Walker: type = std.fs.Dir.Walker;
 const ResolvedTarget: type = std.Build.ResolvedTarget;
 const OptimizeMode: type = std.builtin.OptimizeMode;
 const InstallArtifact: type = std.Build.Step.InstallArtifact;
@@ -11,6 +11,7 @@ const Compile: type = std.Build.Step.Compile;
 const Query: type = std.Target.Query;
 const Tag: type = std.Target.Os.Tag;
 const Step: type = std.Build.Step;
+
 const MatlabVersion: type = enum {
     R2016a,
     R2016b,
@@ -53,56 +54,51 @@ fn addMatlabIncludePath(b: *std.Build, c: *Compile, mat_ver_str: []const u8) voi
     c.addIncludePath(b.path(b.fmt("../{s}/rtw/c/src", .{mat_ver_str})));
 }
 
-fn addSimscapeIncludePath(b: *std.Build, c: *Compile, mat_ver_enum: MatlabVersion, mat_ver_str: []const u8, os_arch: []const u8) void {
-    switch (mat_ver_enum) {
-        .R2016a, .R2016b, .R2017a, .R2017b, .R2018a, .R2018b, .R2019a, .R2019b => {
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/sli/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/compiler/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/pm_math/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/network_engine/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/math/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/lang/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/foundation/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/external/library/c/{s}", .{ mat_ver_str, os_arch })));
-        },
-        .R2020a, .R2020b, .R2021a, .R2021b => {
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/sli/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/compiler/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/network_engine/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/math/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/lang/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/foundation/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/external/library/c/{s}", .{ mat_ver_str, os_arch })));
-        },
-        .R2022a => {
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/simtypes/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/sli/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/ds/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/compiler/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/math/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/logging/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/lang/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/foundation/core/c/{s}", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/external/library/c/{s}", .{ mat_ver_str, os_arch })));
-        },
-        .R2022b, .R2023a, .R2023b => {
-            c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_st/include", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_sli/include", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_ds/include", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_core/include", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_comp/include", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/pm_log/include", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/pm/include", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/mc/include", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/lang/include", .{ mat_ver_str, os_arch })));
-            c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ex/include", .{ mat_ver_str, os_arch })));
-        },
-    }
+fn addSimscapeIncludePath(b: *std.Build, c: *Compile, mat_ver_str: []const u8, os_arch: []const u8) void {
+    // A full inclusive list of all Simscape directories spanning multiple version of Matlab
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/sli/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/core/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/compiler/core/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/drive/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/network_engine/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/math/core/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/lang/core/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/foundation/core/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/external/library/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/pm_math/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/simtypes/core/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/ds/core/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/toolbox/physmod/common/logging/core/c/{s}", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_st/include", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_sli/include", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_ds/include", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_core/include", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_comp/include", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/pm_log/include", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/pm/include", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/mc/include", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/lang/include", .{ mat_ver_str, os_arch })));
+    c.addIncludePath(b.path(b.fmt("../{s}/extern/physmod/{s}/ex/include", .{ mat_ver_str, os_arch })));
 }
 
+fn addSimscapeLibraryPath(b: *std.Build, c: *Compile, mat_ver_str: []const u8, os_arch: []const u8) void {
+    // A full inclusive list of all Simscape directories spanning multiple version of Matlab
+    c.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/sli/lib/{s}", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/core/lib/{s}", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/drive/lib/{s}", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/pm_math/lib/{s}", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/network_engine/lib/{s}", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/math/core/lib/{s}", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/foundation/core/lib/{s}", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/external/library/lib/{s}", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/simtypes/core/lib/{s}", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_st/lib", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_sli/lib", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_core/lib", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/mc/lib", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/pm/lib", .{ mat_ver_str, os_arch })));
+    c.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/ex/lib", .{ mat_ver_str, os_arch })));
+}
 pub fn build(b: *std.Build) !void {
     // FMU Configurations //
     const opt: OptimizeMode = b.standardOptimizeOption(.{});
@@ -114,8 +110,8 @@ pub fn build(b: *std.Build) !void {
     // Replacements from make_rtw_hook
     const model_name: []const u8 = "@MODELNAME@";
     const fmi_version: comptime_int = @FMIVERSION@;
-    const mat_ver_enum: MatlabVersion = .@RMATLABVERSION@;
-    const mat_ver_str: []const u8 = "@RMATLABVERSION@";
+    const mat_ver_enum: MatlabVersion = .R@MATLABVERSION@;
+    const mat_ver_str: []const u8 = "R@MATLABVERSION@";
     const use_simscape: bool = @SIMSCAPE@;
     const fmu_name: []const u8 = "@MODELNAME@.fmu";
 
@@ -164,77 +160,36 @@ pub fn build(b: *std.Build) !void {
         addMatlabIncludePath(b, lib, mat_ver_str);
 
         if (use_simscape) {
-            addSimscapeIncludePath(b, lib, mat_ver_enum, mat_ver_str, os_arch);
+            addSimscapeIncludePath(b, lib, mat_ver_str, os_arch);
+            addSimscapeLibraryPath(b, lib, mat_ver_str, os_arch);
 
+            // Link library for simscape
             const matlab_lib_suffix: []const u8 = switch (target_os) {
                 .windows => "mingw64",
                 .linux => "std",
                 .macos => unreachable,
                 else => unreachable,
             };
-
-            // Library path for simscape
+            lib.linkSystemLibrary(b.fmt("ssc_core_{s}", .{matlab_lib_suffix}));
+            lib.linkSystemLibrary(b.fmt("mc_{s}", .{matlab_lib_suffix}));
+            lib.linkSystemLibrary(b.fmt("ssc_sli_{s}", .{matlab_lib_suffix}));
+            lib.linkSystemLibrary(b.fmt("pm_{s}", .{matlab_lib_suffix}));
+            lib.linkSystemLibrary(b.fmt("ex_{s}", .{matlab_lib_suffix}));
             switch (mat_ver_enum) {
-                .R2016a, .R2016b, .R2017a, .R2017b, .R2018a, .R2018b, .R2019a, .R2019b => {
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/sli/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/core/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/pm_math/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/network_engine/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/math/core/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/foundation/core/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/external/library/lib/{s}", .{ mat_ver_str, os_arch })));
-                },
-                .R2020a, .R2020b, .R2021a, .R2021b => {
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/sli/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/core/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/network_engine/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/math/core/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/foundation/core/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/external/library/lib/{s}", .{ mat_ver_str, os_arch })));
-                },
-                .R2022a => {
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/simtypes/core/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/sli/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/simscape/engine/core/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/math/core/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/foundation/core/lib/{s}", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/toolbox/physmod/common/external/library/lib/{s}", .{ mat_ver_str, os_arch })));
-                },
-                .R2022b, .R2023a, .R2023b => {
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_st/lib", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_sli/lib", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/ssc_core/lib", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/mc/lib", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/pm/lib", .{ mat_ver_str, os_arch })));
-                    lib.addLibraryPath(b.path(b.fmt("../{s}/extern/physmod/{s}/ex/lib", .{ mat_ver_str, os_arch })));
-                },
-            }
-            // Link library for simscape
-            switch (mat_ver_enum) {
-                .R2016a, .R2016b, .R2017a, .R2017b, .R2018a, .R2018b, .R2019a, .R2019b => {
-                    lib.linkSystemLibrary(b.fmt("ssc_sli_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("ssc_core_{s}", .{matlab_lib_suffix}));
+                .R2016a, .R2016b => {
                     lib.linkSystemLibrary(b.fmt("pm_math_{s}", .{matlab_lib_suffix}));
                     lib.linkSystemLibrary(b.fmt("ne_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("mc_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("pm_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("ex_{s}", .{matlab_lib_suffix}));
+                    lib.linkSystemLibrary(b.fmt("drive_{s}", .{matlab_lib_suffix}));
+                },
+                .R2017a, .R2017b, .R2018a, .R2018b, .R2019a, .R2019b => {
+                    lib.linkSystemLibrary(b.fmt("pm_math_{s}", .{matlab_lib_suffix}));
+                    lib.linkSystemLibrary(b.fmt("ne_{s}", .{matlab_lib_suffix}));
                 },
                 .R2020a, .R2020b, .R2021a, .R2021b => {
-                    lib.linkSystemLibrary(b.fmt("ssc_sli_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("ssc_core_{s}", .{matlab_lib_suffix}));
                     lib.linkSystemLibrary(b.fmt("ne_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("mc_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("pm_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("ex_{s}", .{matlab_lib_suffix}));
                 },
                 .R2022a, .R2022b, .R2023a, .R2023b => {
                     lib.linkSystemLibrary(b.fmt("ssc_st_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("ssc_sli_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("ssc_core_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("mc_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("pm_{s}", .{matlab_lib_suffix}));
-                    lib.linkSystemLibrary(b.fmt("ex_{s}", .{matlab_lib_suffix}));
                 },
             }
         }
@@ -253,13 +208,17 @@ pub fn build(b: *std.Build) !void {
         var files: std.ArrayListAligned([]const u8, null) = std.ArrayList([]const u8).init(b.allocator);
         try search_and_append(b, ".", &files);
         try files.append(b.fmt("../{s}/rtw/c/src/rt_matrx.c", .{mat_ver_str}));
+        std.debug.print("Compiling the sources...\n", .{});
         for (files.items) |item| {
             std.debug.print("{s}\n", .{item});
         }
+        std.debug.print("End of source file list\n", .{});
         lib.addCSourceFiles(.{
             .files = files.items,
             .flags = flags.items,
         });
+
+        // Setup fmu directory structure
         const dir_os_arch: []const u8 = switch (fmi_version) {
             1, 2 => switch (target_os) {
                 .windows => "win64",

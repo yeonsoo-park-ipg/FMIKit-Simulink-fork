@@ -12,6 +12,9 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, ~, ~, ~, ~, ~)
     if exist('zig-out', 'dir')
         rmdir('zig-out', 's');
     end
+    if exist('.zig-cache', 'dir')
+        rmdir('.zig-cache', 's');
+    end
     % create the archive directory (uncompressed FMU)
     mkdir('zig-out');
 
@@ -51,38 +54,36 @@ function grtfmi_make_rtw_hook(hookMethod, modelName, ~, ~, ~, ~, ~)
     fwrite(f, build_zig);
     fclose(f);
 
+    % TODO: 
+    % Nested fmus
+    % Optimization Levels(Debug, ReleaseSmall, ReleaseFast, ReleaseSafe)
+    % Custom code
+    % Include source in fmu
+    % libc version
 
-    
     source_code_fmu     = get_param(modelName, 'SourceCodeFMU');
     
 
-    % CMake
-
-    build_windows       = get_param(modelName, 'CMakeBuildWindows');
-    build_linux         = get_param(modelName, 'CMakeBuildLinux');
-
-    build_configuration = get_param(modelName, 'CMakeBuildConfiguration');
-    optimization_level  = get_param(modelName, 'CMakeCompilerOptimizationLevel');
-    optimization_flags  = get_param(modelName, 'CMakeCompilerOptimizationFlags');
-    % copy extracted nested FMUs
-    nested_fmus = find_system(modelName, 'LookUnderMasks', 'All', 'FunctionName', 'sfun_fmurun');
-
-    if ~isempty(nested_fmus)
-        disp('### Copy nested FMUs')
-        for i = 1:numel(nested_fmus)
-            nested_fmu = nested_fmus{i};
-            unzipdir = FMIKit.getUnzipDirectory(nested_fmu);
-            user_data = get_param(nested_fmu, 'UserData');
-            dialog = FMIKit.showBlockDialog(nested_fmu, false);
-            if user_data.runAsKind == 0
-                model_identifier = char(dialog.modelDescription.modelExchange.modelIdentifier);
-            else
-                model_identifier = char(dialog.modelDescription.coSimulation.modelIdentifier);
-            end
-            disp(['Copying ' unzipdir ' to resources'])                
-            copyfile(unzipdir, fullfile('zig-out', 'resources', model_identifier), 'f');
-        end
+    
+    if ~isempty(find_system(modelName, 'BlockType', 'FMU'))
+        
     end
+    %if ~isempty(nested_fmus)
+    %    disp('### Copy nested FMUs')
+    %    for i = 1:numel(nested_fmus)
+    %        nested_fmu = nested_fmus{i};
+    %        unzipdir = FMIKit.getUnzipDirectory(nested_fmu);
+    %        user_data = get_param(nested_fmu, 'UserData');
+    %        dialog = FMIKit.showBlockDialog(nested_fmu, false);
+    %        if user_data.runAsKind == 0
+    %            model_identifier = char(dialog.modelDescription.modelExchange.modelIdentifier);
+    %        else
+    %            model_identifier = char(dialog.modelDescription.coSimulation.modelIdentifier);
+    %        end
+    %        disp(['Copying ' unzipdir ' to resources'])                
+    %        copyfile(unzipdir, fullfile('zig-out', 'resources', model_identifier), 'f');
+    %    end
+    %end
 
     
     disp('### Building FMU')
